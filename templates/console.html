@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ console_title|default:"Консоль управления" }}</title>
+  <style>
+    :root {
+      --bg: #0b1021;
+      --panel: #0f162e;
+      --card: rgba(255,255,255,0.02);
+      --accent: #ff3b30;
+      --accent2: #19d1ff;
+      --text: #f7f7f7;
+      --muted: #c4c7d4;
+      --border: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Inter','JetBrains Mono',system-ui,-apple-system,sans-serif; background:radial-gradient(circle at 15% 20%, rgba(25,209,255,0.08), transparent 26%), radial-gradient(circle at 85% 15%, rgba(255,59,48,0.1), transparent 32%), var(--bg); color:var(--text); min-height:100vh; padding:24px; }
+    h1,h2 { margin:0 0 12px; letter-spacing:-0.02em; }
+    .layout { display:grid; grid-template-columns: auto 1fr; gap:16px; align-items:start; }
+    .sidebar {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+      width:220px;
+      min-width:56px;
+      overflow:hidden;
+      transition:width 0.28s cubic-bezier(.4,0,.2,1);
+      position:sticky;
+      top:24px;
+    }
+    .sidebar.collapsed { width:56px; }
+    .sidebar-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:4px 6px 8px;
+      gap:8px;
+      overflow:hidden;
+    }
+    .sidebar-title {
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      transition:opacity 0.2s, width 0.2s;
+      overflow:hidden;
+    }
+    .sidebar.collapsed .sidebar-title { opacity:0; width:0; }
+    .nav-btn {
+      width:100%;
+      text-align:left;
+      padding:9px 10px;
+      border-radius:10px;
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      font-weight:500;
+      font-size:14px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      transition:color 0.15s;
+      white-space:nowrap;
+      overflow:hidden;
+      position:relative;
+      margin-top:0;
+      transform:none;
+      box-shadow:none;
+    }
+    .nav-btn:hover { background:transparent; color:var(--text); transform:none; box-shadow:none; }
+    .nav-btn.active { background:rgba(25,209,255,0.13); color:#19d1ff; transform:none; box-shadow:none; }
+    .nav-btn.active .nav-icon { opacity:1; color:#19d1ff; }
+    .nav-icon {
+      flex-shrink:0;
+      width:18px;
+      height:18px;
+      opacity:0.55;
+      transition:opacity 0.15s, color 0.15s;
+    }
+    .nav-btn:hover .nav-icon { opacity:0.85; }
+    .nav-label {
+      transition:opacity 0.2s;
+      white-space:nowrap;
+    }
+    .sidebar.collapsed .nav-label { opacity:0; pointer-events:none; }
+    .sidebar-sep {
+      height:1px;
+      background:var(--border);
+      margin:6px 0;
+      flex-shrink:0;
+    }
+    .sidebar-collapse-btn {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 10px;
+      border-radius:10px;
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:14px;
+      font-weight:500;
+      white-space:nowrap;
+      overflow:hidden;
+      width:100%;
+      transition:color 0.15s;
+      margin-top:4px;
+      transform:none;
+      box-shadow:none;
+    }
+    .sidebar-collapse-btn:hover { background:transparent; color:var(--text); transform:none; box-shadow:none; }
+    .sidebar-collapse-btn .nav-icon { opacity:0.55; transition:transform 0.3s ease, opacity 0.15s; }
+    .sidebar.collapsed .sidebar-collapse-btn .nav-icon { transform:rotate(180deg); }
+    .sidebar-collapse-btn:hover .nav-icon { opacity:0.85; }
+    .sidebar-user {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px;
+      border-radius:10px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid var(--border);
+      margin-bottom:6px;
+      overflow:hidden;
+      flex-shrink:0;
+    }
+    .sidebar-user-avatar {
+      width:32px;
+      height:32px;
+      min-width:32px;
+      border-radius:8px;
+      background:linear-gradient(135deg, rgba(25,209,255,0.25), rgba(43,103,223,0.35));
+      border:1px solid rgba(25,209,255,0.2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      font-weight:700;
+      color:#19d1ff;
+    }
+    .sidebar-user-info {
+      overflow:hidden;
+      transition:opacity 0.2s;
+      min-width:0;
+    }
+    .sidebar.collapsed .sidebar-user-info { opacity:0; pointer-events:none; }
+    .sidebar-user-name {
+      font-size:13px;
+      font-weight:600;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .sidebar-user-role {
+      font-size:11px;
+      color:var(--muted);
+      white-space:nowrap;
+      margin-top:1px;
+    }
+    .sidebar-logout-btn {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 10px;
+      border-radius:10px;
+      border:none;
+      background:transparent;
+      color:rgba(255,80,80,0.65);
+      cursor:pointer;
+      font-size:14px;
+      font-weight:500;
+      white-space:nowrap;
+      overflow:hidden;
+      width:100%;
+      transition:color 0.15s;
+      margin-top:0;
+      transform:none;
+      box-shadow:none;
+    }
+    .sidebar-logout-btn:hover { background:transparent; color:#ff5555; transform:none; box-shadow:none; }
+    .sidebar-logout-btn .nav-icon { opacity:0.65; transition:opacity 0.15s; }
+    .sidebar-logout-btn:hover .nav-icon { opacity:1; }
+    .grid { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow:0 10px 28px rgba(0,0,0,0.35); }
+    label { display:block; margin:10px 0 4px; color:var(--muted); font-size:13px; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0b1021; color:var(--text); outline:none; transition:border .2s, box-shadow .2s; }
+    input:focus, select:focus, textarea:focus { border-color:var(--accent2); box-shadow:0 0 0 3px rgba(25,209,255,0.15); }
+    .hint { color:var(--muted); font-size:12px; margin:4px 0 0; }
+    button { margin-top:12px; padding:10px 12px; border:none; border-radius:10px; background:linear-gradient(120deg,#ff3b30,#ff6b6b); color:#fff; font-weight:700; cursor:pointer; transition:transform .1s, box-shadow .2s; }
+    button:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(255,59,48,0.25); }
+    .status { margin-top:10px; font-size:13px; color:var(--muted); white-space:pre-line; }
+    table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+    th {
+      color:var(--muted); font-weight:700; font-size:11px;
+      letter-spacing:0.06em; text-transform:uppercase;
+      padding:10px 10px; border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,0.02); white-space:nowrap; text-align:left;
+    }
+    td { padding:10px 10px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; text-align:left; }
+    tbody tr:hover td { background:rgba(255,255,255,0.025); transition:background .1s; }
+    tbody tr:last-child td { border-bottom:none; }
+    .actions { display:flex; gap:5px; align-items:center; }
+    .actions button { margin-top:0; padding:5px 10px; font-size:11px; font-weight:600; border-radius:7px; letter-spacing:0.01em; }
+    [data-edit-model] { background:rgba(25,209,255,0.1)!important; color:rgba(25,209,255,0.8)!important; transform:none!important; box-shadow:none!important; }
+    [data-edit-model]:hover { background:rgba(25,209,255,0.2)!important; color:#19d1ff!important; transform:none!important; box-shadow:none!important; }
+    [data-del-model] { background:rgba(255,59,48,0.1)!important; color:rgba(255,80,80,0.75)!important; transform:none!important; box-shadow:none!important; }
+    [data-del-model]:hover { background:rgba(255,59,48,0.22)!important; color:#ff5050!important; transform:none!important; box-shadow:none!important; }
+    .secondary { background:rgba(255,255,255,0.08); }
+    .pill { padding:4px 8px; border-radius:999px; background:rgba(25,209,255,0.14); color:#dff7ff; font-size:12px; }
+    .toggle { padding:6px 10px; font-size:12px; margin-top:0; }
+    .form-box { display:none; margin-top:10px; }
+    .row { display:flex; gap:10px; }
+    .row input { flex:1; }
+    .search { margin:14px 0 6px; background:rgba(255,255,255,0.03); }
+    /* ── KPI cards ── */
+    .stats-kpi-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:14px; }
+    .kpi-card {
+      border-radius:14px; padding:14px 12px; border:1px solid var(--border);
+      background:rgba(255,255,255,0.03); position:relative; overflow:hidden;
+    }
+    .kpi-card::after {
+      content:''; position:absolute; top:-24px; right:-24px;
+      width:72px; height:72px; border-radius:50%; opacity:0.13;
+    }
+    .kpi-blue::after  { background:#19d1ff; }
+    .kpi-green::after { background:#4ade80; }
+    .kpi-purple::after{ background:#a78bfa; }
+    .kpi-orange::after{ background:#fb923c; }
+    .kpi-pink::after  { background:#f472b6; }
+    .kpi-yellow::after{ background:#fbbf24; }
+    .kpi-icon {
+      width:30px; height:30px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center; margin-bottom:10px;
+    }
+    .kpi-blue  .kpi-icon { background:rgba(25,209,255,0.14);  color:#19d1ff; }
+    .kpi-green .kpi-icon { background:rgba(74,222,128,0.14);  color:#4ade80; }
+    .kpi-purple.kpi-icon,.kpi-purple .kpi-icon { background:rgba(167,139,250,0.14); color:#a78bfa; }
+    .kpi-orange .kpi-icon { background:rgba(251,146,60,0.14);  color:#fb923c; }
+    .kpi-pink   .kpi-icon { background:rgba(244,114,182,0.14); color:#f472b6; }
+    .kpi-yellow .kpi-icon { background:rgba(251,191,36,0.14);  color:#fbbf24; }
+    .kpi-label { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+    .kpi-value { font-size:28px; font-weight:800; line-height:1; margin:0; }
+    .kpi-blue   .kpi-value { color:#19d1ff; }
+    .kpi-green  .kpi-value { color:#4ade80; }
+    .kpi-purple .kpi-value { color:#a78bfa; }
+    .kpi-orange .kpi-value { color:#fb923c; }
+    .kpi-pink   .kpi-value { color:#f472b6; }
+    .kpi-yellow .kpi-value { color:#fbbf24; }
+    /* ── Analytics row ── */
+    .stats-analytics-row { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:12px; margin-bottom:12px; align-items:stretch; }
+    .an-card {
+      background:rgba(255,255,255,0.02); border:1px solid var(--border);
+      border-radius:14px; padding:16px;
+      display:flex; flex-direction:column;
+    }
+    .an-card h3 { margin:0 0 14px; font-size:13px; font-weight:700; color:var(--text); letter-spacing:0.01em; flex-shrink:0; }
+    /* bar chart (groups) */
+    .bar-chart { display:flex; flex-direction:column; gap:0; flex:1; justify-content:space-between; }
+    .bar-row { display:grid; grid-template-columns:80px 1fr 36px; gap:8px; align-items:center; font-size:12px; padding:6px 0; }
+    .bar-row + .bar-row { border-top:1px solid rgba(255,255,255,0.04); }
+    .bar-label { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bar-track { height:8px; border-radius:999px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); overflow:hidden; }
+    .bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,rgba(25,209,255,.7),rgba(43,103,223,.9)); width:0%; transition:width .3s ease; }
+    .bar-value { color:#dfe8ff; text-align:right; font-weight:700; }
+    .an-footer {
+      margin-top:14px; padding-top:12px;
+      border-top:1px solid rgba(255,255,255,0.07);
+      display:flex; justify-content:space-between; align-items:center;
+      flex-shrink:0;
+    }
+    .an-footer-label { font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.03em; }
+    .an-footer-val   { font-size:13px; font-weight:700; color:var(--text); }
+    /* weekday heatmap */
+    .weekday-heatmap { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; flex:1; }
+    .wd-cell {
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+      padding:12px 4px; border-radius:10px;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+      position:relative; overflow:hidden;
+    }
+    .wd-cell::before {
+      content:''; position:absolute; bottom:0; left:0; right:0;
+      height:var(--fill,3px); border-radius:0 0 8px 8px;
+      background:linear-gradient(180deg,rgba(25,209,255,0.45),rgba(25,209,255,0.9));
+      transition:height .4s ease;
+    }
+    .wd-day  { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; position:relative; }
+    .wd-val  { font-size:20px; font-weight:800; line-height:1; position:relative; }
+    /* roles distribution */
+    .roles-list { display:flex; flex-direction:column; gap:11px; }
+    .role-row-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+    .role-name  { font-size:12px; font-weight:600; color:var(--muted); }
+    .role-badge { font-size:12px; font-weight:700; color:var(--text); }
+    .role-track { height:6px; border-radius:999px; background:rgba(255,255,255,0.06); overflow:hidden; }
+    .role-fill  { height:100%; border-radius:999px; transition:width .35s ease; }
+    /* timeline */
+    .an-card-full { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:14px; padding:16px; }
+    .an-card-full h3 { margin:0 0 12px; font-size:13px; font-weight:700; color:var(--text); }
+    .tl-list { display:flex; flex-direction:column; gap:7px; }
+    .tl-item {
+      display:flex; align-items:center; gap:12px;
+      padding:9px 12px; border-radius:10px;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+    }
+    .tl-day {
+      min-width:34px; height:34px; border-radius:8px;
+      background:rgba(25,209,255,0.1); border:1px solid rgba(25,209,255,0.18);
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:800; color:#19d1ff;
+    }
+    .tl-time  { font-size:14px; font-weight:700; color:var(--text); min-width:52px; }
+    .tl-group { font-size:13px; color:var(--muted); flex:1; }
+    .tl-num   { font-size:11px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.07); color:var(--muted); white-space:nowrap; }
+    /* ── Role hub cards ── */
+    .role-cards-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin-top:16px; }
+    .role-card {
+      border-radius:14px; padding:18px 14px; border:1px solid var(--border);
+      background:rgba(255,255,255,0.03); cursor:pointer; position:relative;
+      overflow:hidden; transition:border-color .18s,background .18s;
+      display:flex; flex-direction:column; gap:12px; text-align:left; outline:none;
+    }
+    .role-card::after { content:''; position:absolute; top:-22px; right:-22px; width:72px; height:72px; border-radius:50%; opacity:0.12; }
+    .role-card:hover { border-color:rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); transform:none; box-shadow:none; }
+    .role-card-icon { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .role-card-name { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; }
+    .role-card-count { font-size:30px; font-weight:800; line-height:1; margin-top:3px; }
+    .role-card-desc { font-size:11px; color:var(--muted); margin-top:4px; }
+    .rc-orange::after { background:#fb923c; }
+    .rc-orange .role-card-icon { background:rgba(251,146,60,0.14); color:#fb923c; }
+    .rc-orange .role-card-count { color:#fb923c; }
+    .rc-green::after { background:#4ade80; }
+    .rc-green .role-card-icon { background:rgba(74,222,128,0.14); color:#4ade80; }
+    .rc-green .role-card-count { color:#4ade80; }
+    .rc-purple::after { background:#a78bfa; }
+    .rc-purple .role-card-icon { background:rgba(167,139,250,0.14); color:#a78bfa; }
+    .rc-purple .role-card-count { color:#a78bfa; }
+    .rc-pink::after { background:#f472b6; }
+    .rc-pink .role-card-icon { background:rgba(244,114,182,0.14); color:#f472b6; }
+    .rc-pink .role-card-count { color:#f472b6; }
+    .rc-blue::after { background:#19d1ff; }
+    .rc-blue .role-card-icon { background:rgba(25,209,255,0.14); color:#19d1ff; }
+    .rc-blue .role-card-count { color:#19d1ff; }
+    /* ── Role tab header ── */
+    .role-back-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 12px; border-radius:8px; border:1px solid var(--border);
+      background:transparent; color:var(--muted); font-size:12px; font-weight:600;
+      cursor:pointer; margin-top:0; margin-bottom:14px; transform:none; box-shadow:none;
+      transition:color .15s,border-color .15s;
+    }
+    .role-back-btn:hover { color:var(--text); border-color:rgba(255,255,255,.22); background:transparent; transform:none; box-shadow:none; }
+    .role-tab-badge {
+      display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px;
+      background:rgba(255,255,255,.07); color:var(--muted); font-size:12px; font-weight:700; margin-left:8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px;">
+    <h1 id="page-title" style="margin:0;">{{ console_title|default:"Консоль управления" }}</h1>
+    <input id="token" placeholder="Access token" style="width:320px;" />
+    <button id="btn-auth" style="margin-top:0;padding:8px 20px;background:linear-gradient(120deg,#19d1ff,#38e8ff);color:#0b1021;font-weight:700;box-shadow:0 8px 20px rgba(25,209,255,0.25);">Авторизоваться</button>
+    <span id="me-info" class="status" style="margin-top:0;"></span>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar" id="main-sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Разделы</span>
+      </div>
+
+      <div class="sidebar-user" id="sidebar-user-block">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">Не авторизован</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+      </div>
+
+      <button class="nav-btn active" data-tab="stats">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+        <span class="nav-label">Статистика</span>
+      </button>
+      <button class="nav-btn" data-tab="roles">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.5"/><path d="M21 20c0-2.8-2-5-4.5-5.4"/></svg>
+        <span class="nav-label">Роли</span>
+      </button>
+      <button class="nav-btn" data-tab="groups">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span class="nav-label">Группы</span>
+      </button>
+      <button class="nav-btn" data-tab="subjects">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="nav-label">Предметы</span>
+      </button>
+      <button class="nav-btn" data-tab="methods">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span class="nav-label">Методпакеты</span>
+      </button>
+      <button class="nav-btn" data-tab="assignments">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        <span class="nav-label">Назначения</span>
+      </button>
+      <button class="nav-btn" data-tab="events">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="nav-label">События</span>
+      </button>
+      <button class="nav-btn" data-tab="feed">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span class="nav-label">Лента</span>
+      </button>
+      <button class="nav-btn" data-tab="schedule">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="nav-label">Расписание</span>
+      </button>
+      <button class="nav-btn" data-tab="holidays">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span class="nav-label">Праздники</span>
+      </button>
+
+      <div class="sidebar-sep"></div>
+
+      <button class="sidebar-collapse-btn" id="sidebar-toggle">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="15 8 11 12 15 16"/></svg>
+        <span class="nav-label">Свернуть</span>
+      </button>
+
+      <button class="sidebar-logout-btn" id="btn-logout">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="nav-label">Выйти</span>
+      </button>
+    </div>
+
+    <div class="grid">
+      <!-- Stats -->
+      <div class="card tab" data-tab="stats">
+        <h2 style="margin-bottom:16px;">Статистика</h2>
+
+        <!-- KPI row -->
+        <div class="stats-kpi-grid">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="kpi-label">Группы</div><p id="stat-groups" class="kpi-value">0</p>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="kpi-label">Ученики</div><p id="stat-students" class="kpi-value">0</p>
+          </div>
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></div>
+            <div class="kpi-label">Преподы</div><p id="stat-teachers" class="kpi-value">0</p>
+          </div>
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6"/><circle cx="17" cy="8" r="2.5"/><path d="M21 20c0-2.8-2-5-4.5-5.4"/></svg></div>
+            <div class="kpi-label">Родители</div><p id="stat-parents" class="kpi-value">0</p>
+          </div>
+          <div class="kpi-card kpi-pink">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+            <div class="kpi-label">Методпакеты</div><p id="stat-methods" class="kpi-value">0</p>
+          </div>
+          <div class="kpi-card kpi-yellow">
+            <div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="kpi-label">Слоты</div><p id="stat-slots" class="kpi-value">0</p>
+          </div>
+        </div>
+
+        <!-- Analytics row -->
+        <div class="stats-analytics-row">
+          <div class="an-card">
+            <h3>Топ групп по ученикам</h3>
+            <div id="stats-chart-groups" class="bar-chart"></div>
+            <div class="an-footer">
+              <span class="an-footer-label">Всего учеников</span>
+              <span class="an-footer-val" id="stats-footer-students">—</span>
+            </div>
+          </div>
+          <div class="an-card">
+            <h3>Нагрузка по дням недели</h3>
+            <div id="stats-weekday-heatmap" class="weekday-heatmap"></div>
+            <div class="an-footer">
+              <span class="an-footer-label">Пик нагрузки</span>
+              <span class="an-footer-val" id="stats-footer-peak">—</span>
+            </div>
+          </div>
+          <div class="an-card">
+            <h3>Состав участников</h3>
+            <div id="stats-chart-roles" class="roles-list"></div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="an-card-full">
+          <h3>Ближайшие занятия</h3>
+          <div id="stats-next-lessons" class="tl-list"></div>
+        </div>
+      </div>
+
+      <!-- Groups -->
+      <div class="card tab" data-tab="groups" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Группы <button class="toggle create-btn" data-model="groups">Создать</button></h2>
+        <input id="search-groups" class="search" placeholder="Поиск групп" />
+        <table>
+          <thead><tr><th>ID</th><th>Название</th><th>Описание</th><th>Действия</th></tr></thead>
+          <tbody id="groups-body"></tbody>
+        </table>
+        <div class="form-box" id="box-group">
+          <form id="form-group">
+            <input type="hidden" name="edit_id" />
+            <label>Название</label><input name="name" required />
+            <label>Описание</label><textarea name="description" rows="2"></textarea>
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-group"></div>
+      </div>
+
+      <!-- Roles Hub -->
+      <div class="card tab" data-tab="roles" style="display:none;">
+        <h2 style="margin-bottom:4px;">Роли</h2>
+        <p class="hint" style="margin:0;">Выберите нужную роль для управления.</p>
+        <div class="role-cards-grid">
+          <div class="role-card rc-orange role-jump" data-target-tab="parents" tabindex="0">
+            <div class="role-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.5"/><path d="M21 20c0-2.8-2-5-4.5-5.4"/></svg>
+            </div>
+            <div>
+              <div class="role-card-name">Родители</div>
+              <div class="role-card-count" id="rc-count-parents">—</div>
+              <div class="role-card-desc">Учётные записи</div>
+            </div>
+          </div>
+          <div class="role-card rc-green role-jump" data-target-tab="students" tabindex="0">
+            <div class="role-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="role-card-name">Ученики</div>
+              <div class="role-card-count" id="rc-count-students">—</div>
+              <div class="role-card-desc">Учётные записи</div>
+            </div>
+          </div>
+          <div class="role-card rc-purple role-jump" data-target-tab="teachers" tabindex="0">
+            <div class="role-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            </div>
+            <div>
+              <div class="role-card-name">Преподаватели</div>
+              <div class="role-card-count" id="rc-count-teachers">—</div>
+              <div class="role-card-desc">Учётные записи</div>
+            </div>
+          </div>
+          <div class="role-card rc-pink role-jump" data-target-tab="methodists" tabindex="0">
+            <div class="role-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+              <div class="role-card-name">Методисты</div>
+              <div class="role-card-count" id="rc-count-methodists">—</div>
+              <div class="role-card-desc">Учётные записи</div>
+            </div>
+          </div>
+          <div class="role-card rc-blue role-jump" data-target-tab="managers" tabindex="0">
+            <div class="role-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            </div>
+            <div>
+              <div class="role-card-name">Менеджеры</div>
+              <div class="role-card-count" id="rc-count-managers">—</div>
+              <div class="role-card-desc">Учётные записи</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parents -->
+      <div class="card tab" data-tab="parents" style="display:none;">
+        <button class="role-back-btn back-to-roles"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Назад к Ролям</button>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;"><span>Родители <span class="role-tab-badge" id="rtb-parents">0</span></span> <button class="toggle create-btn" data-model="parents">Создать</button></h2>
+        <input id="search-parents" class="search" placeholder="Поиск родителей" />
+        <table>
+          <thead><tr><th>ID</th><th>ФИО</th><th>Логин</th><th>Пароль</th><th>Действия</th></tr></thead>
+          <tbody id="parents-body"></tbody>
+        </table>
+        <div class="form-box" id="box-parent">
+          <form id="form-parent">
+            <input type="hidden" name="edit_id" />
+            <div class="row"><input name="last_name" placeholder="Фамилия" required /><input name="first_name" placeholder="Имя" required /></div>
+            <label>Телефон</label><input class="phone-mask" name="phone" inputmode="tel" placeholder="+7 900 000-00-00" />
+            <label>Email</label><input name="email" type="email" placeholder="parent@example.com" />
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-parent"></div>
+      </div>
+
+      <!-- Students -->
+      <div class="card tab" data-tab="students" style="display:none;">
+        <button class="role-back-btn back-to-roles"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Назад к Ролям</button>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;"><span>Ученики <span class="role-tab-badge" id="rtb-students">0</span></span> <button class="toggle create-btn" data-model="students">Создать</button></h2>
+        <input id="search-students" class="search" placeholder="Поиск учеников" />
+        <table>
+          <thead><tr><th>ID</th><th>ФИО</th><th>Группа</th><th>Логин</th><th>Пароль</th><th>Действия</th></tr></thead>
+          <tbody id="students-body"></tbody>
+        </table>
+        <div class="form-box" id="box-student">
+          <form id="form-student">
+            <input type="hidden" name="edit_id" />
+            <div class="row"><input name="last_name" placeholder="Фамилия" required /><input name="first_name" placeholder="Имя" required /></div>
+            <label>Группа</label><select name="group" id="student-group" required><option value="">Выберите группу</option></select>
+            <label>Родители</label><select name="parents" id="student-parents" multiple size="4" style="height:auto;"></select>
+            <div class="hint">Ctrl/Cmd для выбора нескольких</div>
+            <label>Заметки</label><textarea name="notes" rows="2"></textarea>
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-student"></div>
+      </div>
+
+      <!-- Teachers -->
+      <div class="card tab" data-tab="teachers" style="display:none;">
+        <button class="role-back-btn back-to-roles"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Назад к Ролям</button>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;"><span>Преподаватели <span class="role-tab-badge" id="rtb-teachers">0</span></span> <button class="toggle create-btn" data-model="teachers">Создать</button></h2>
+        <input id="search-teachers" class="search" placeholder="Поиск преподавателей" />
+        <table>
+          <thead><tr><th>ID</th><th>ФИО</th><th>Email</th><th>Группы</th><th>Логин</th><th>Пароль</th><th>Действия</th></tr></thead>
+          <tbody id="teachers-body"></tbody>
+        </table>
+        <div class="form-box" id="box-teacher">
+          <form id="form-teacher">
+            <input type="hidden" name="edit_id" />
+            <div class="row"><input name="last_name" placeholder="Фамилия" required /><input name="first_name" placeholder="Имя" required /></div>
+            <label>Телефон</label><input class="phone-mask" name="phone" inputmode="tel" placeholder="+7 900 000-00-00" />
+            <label>Email</label><input name="email" type="email" placeholder="teacher@example.com" />
+            <label>Группы</label><select name="groups" id="teacher-groups" multiple size="4" style="height:auto;"></select>
+            <div class="hint">Ctrl/Cmd для выбора нескольких</div>
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-teacher"></div>
+      </div>
+
+      <!-- Methodists -->
+      <div class="card tab" data-tab="methodists" style="display:none;">
+        <button class="role-back-btn back-to-roles"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Назад к Ролям</button>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;"><span>Методисты <span class="role-tab-badge" id="rtb-methodists">0</span></span> <button class="toggle create-btn" data-model="methodists">Создать</button></h2>
+        <input id="search-methodists" class="search" placeholder="Поиск методистов" />
+        <table>
+          <thead><tr><th>Логин</th><th>Email</th><th>Роль</th><th>Действия</th></tr></thead>
+          <tbody id="methodists-body"></tbody>
+        </table>
+        <div class="status" id="status-methodists"></div>
+      </div>
+
+      <div class="card tab" data-tab="managers" style="display:none;">
+        <button class="role-back-btn back-to-roles"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Назад к Ролям</button>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;"><span>Менеджеры <span class="role-tab-badge" id="rtb-managers">0</span></span> <button class="toggle create-btn" data-model="managers">Создать</button></h2>
+        <input id="search-managers" class="search" placeholder="Поиск менеджеров" />
+        <table>
+          <thead><tr><th>Логин</th><th>Email</th><th>Роль</th><th>Действия</th></tr></thead>
+          <tbody id="managers-body"></tbody>
+        </table>
+        <div class="status" id="status-managers"></div>
+      </div>
+
+      <!-- Methods -->
+      <div class="card tab" data-tab="subjects" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Предметы <button class="toggle create-btn" data-model="subjects">Создать</button></h2>
+        <input id="search-subjects" class="search" placeholder="Поиск предметов" />
+        <table>
+          <thead><tr><th>ID</th><th>Название</th><th>Действия</th></tr></thead>
+          <tbody id="subjects-body"></tbody>
+        </table>
+        <div class="status" id="status-subjects"></div>
+      </div>
+
+      <div class="card tab" data-tab="methods" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Методпакеты <button class="toggle create-btn" data-model="methods">Создать</button></h2>
+        <div class="row" style="margin-top:6px;">
+          <input id="search-methods" class="search" placeholder="Поиск методпакетов" />
+          <select id="methods-subject-filter"><option value="">Все предметы</option></select>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>№</th><th>Название</th><th>Предмет</th><th>Действия</th></tr></thead>
+          <tbody id="methods-body"></tbody>
+        </table>
+        <div class="form-box" id="box-method">
+          <form id="form-method">
+            <input type="hidden" name="edit_id" />
+            <label>Название</label><input name="title" required />
+            <label>Описание</label><textarea name="description" rows="2"></textarea>
+            <label>Ссылка на материалы</label><input name="material_url" type="url" placeholder="https://..." />
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-method"></div>
+      </div>
+
+      <!-- Schedule -->
+      <div class="card tab" data-tab="schedule" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Расписание <button class="toggle create-btn" data-model="schedule">Создать</button></h2>
+        <input id="search-schedule" class="search" placeholder="Поиск по группе/дате/уроку" />
+        <table>
+          <thead><tr><th>ID</th><th>Группа</th><th>Дата</th><th>День</th><th>Урок</th><th>Методпакет</th><th>Перенос</th><th>Действия</th></tr></thead>
+          <tbody id="schedule-body"></tbody>
+        </table>
+        <div class="form-box" id="box-schedule">
+          <form id="form-schedule">
+            <input type="hidden" name="edit_id" />
+            <label>Группа</label><select name="group" id="schedule-group" required><option value="">Выберите группу</option></select>
+            <label>День недели (0=Пн ... 6=Вс)</label><input name="weekday" type="number" min="0" max="6" required />
+            <label>Номер занятия (1 или 2)</label><input name="lesson_number" type="number" min="1" max="10" required />
+            <label>Начало (HH:MM)</label><input name="start_time" type="time" required />
+            <label>Длительность (мин)</label><input name="duration_minutes" type="number" min="15" max="300" value="90" />
+            <label>Методпакет</label><select name="method_package_id" id="schedule-method"><option value="">Без методпакета</option></select>
+            <button type="submit">Сохранить</button>
+          </form>
+        </div>
+        <div class="status" id="status-schedule"></div>
+      </div>
+
+      <!-- Holidays -->
+      <div class="card tab" data-tab="holidays" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Праздники <button class="toggle create-btn" data-model="holidays">Создать</button></h2>
+        <input id="search-holidays" class="search" placeholder="Поиск по дате/названию/группе" />
+        <table>
+          <thead><tr><th>ID</th><th>Дата</th><th>Название</th><th>Группа</th><th>Действия</th></tr></thead>
+          <tbody id="holidays-body"></tbody>
+        </table>
+        <div class="status" id="status-holidays"></div>
+      </div>
+
+      <!-- Events -->
+      <div class="card tab" data-tab="assignments" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Назначения методов <button class="toggle create-btn" data-model="assignments">Создать</button></h2>
+        <input id="search-assignments" class="search" placeholder="Поиск по методу/преподавателю" />
+        <table>
+          <thead><tr><th>ID</th><th>Методпакет</th><th>Преподаватель</th><th>Дедлайн</th><th>Статус</th><th>Ред.</th><th>Действия</th></tr></thead>
+          <tbody id="assignments-body"></tbody>
+        </table>
+        <div class="status" id="status-assignments"></div>
+      </div>
+
+      <!-- Events -->
+      <div class="card tab" data-tab="events" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">События <button class="toggle create-btn" data-model="events">Создать</button></h2>
+        <input id="search-events" class="search" placeholder="Поиск событий" />
+        <table>
+          <thead><tr><th>ID</th><th>Группа</th><th>Заголовок</th><th>Дата</th><th>Медиа</th><th>Действия</th></tr></thead>
+          <tbody id="events-body"></tbody>
+        </table>
+        <div class="status" id="status-events"></div>
+      </div>
+
+      <!-- Feed -->
+      <div class="card tab" data-tab="feed" style="display:none;">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Лента <button class="toggle create-btn" data-model="feed">Создать</button></h2>
+        <input id="search-feed" class="search" placeholder="Поиск по постам" />
+        <table>
+          <thead><tr><th>ID</th><th>Группа</th><th>Автор</th><th>Текст</th><th>Медиа</th><th>Действия</th></tr></thead>
+          <tbody id="feed-body"></tbody>
+        </table>
+        <div class="status" id="status-feed"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CONSOLE_CREATE_ROOT = '{{ console_create_root|default:"/console/create/" }}';
+    const tokenInput = document.getElementById('token');
+    const status = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const createBtns = document.querySelectorAll('.create-btn');
+    const roleJumpBtns = document.querySelectorAll('.role-jump');
+    const cache = { groups: [], parents: [], students: [], teachers: [], methodists: [], managers: [], subjects: [], lessons: [], methods: [], schedule: [], assignments: [], events: [], feed: [], holidays: [] };
+    const weekday = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = String(params.get('tab') || '').trim();
+    const consoleTabStorageKey = `console_active_tab:${CONSOLE_CREATE_ROOT}`;
+    const tokenFromQuery = params.get('token') || '';
+    const tokenFromStorage = localStorage.getItem('consoleAccessToken') || '';
+    const apiModelMap = {
+      groups: 'groups',
+      parents: 'parents',
+      students: 'students',
+      teachers: 'teachers',
+      subjects: 'subjects',
+      methods: 'method-packages',
+      schedule: 'schedule',
+      assignments: 'method-assignments',
+      holidays: 'holidays',
+      methodists: 'profiles',
+      managers: 'profiles',
+      events: 'events',
+      feed: 'feed-posts',
+    };
+
+    if (tokenFromQuery) {
+      tokenInput.value = tokenFromQuery;
+      localStorage.setItem('consoleAccessToken', tokenFromQuery);
+    } else if (tokenFromStorage) {
+      tokenInput.value = tokenFromStorage;
+    }
+
+    tokenInput.addEventListener('input', () => {
+      localStorage.setItem('consoleAccessToken', tokenInput.value.trim());
+    });
+
+    function activateTab(tabName) {
+      const targetBtn = Array.from(navBtns).find((b) => b.dataset.tab === tabName && b.style.display !== 'none');
+      const btn = targetBtn || Array.from(navBtns).find((b) => b.style.display !== 'none') || navBtns[0];
+      if (!btn) return;
+      navBtns.forEach((x) => x.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach((t) => { t.style.display = 'none'; });
+      btn.classList.add('active');
+      const tab = document.querySelector(`.tab[data-tab="${btn.dataset.tab}"]`);
+      if (tab) tab.style.display = 'block';
+      try { sessionStorage.setItem(consoleTabStorageKey, btn.dataset.tab); } catch (_) {}
+    }
+
+    function updateSidebarUser(me) {
+      const name = me.username || me.email || 'Пользователь';
+      const role = me.role || '';
+      const initials = name.slice(0, 2).toUpperCase();
+      const el = document.getElementById('sidebar-user-name');
+      const roleEl = document.getElementById('sidebar-user-role');
+      const avatarEl = document.getElementById('sidebar-user-avatar');
+      if (el) el.textContent = name;
+      if (roleEl) roleEl.textContent = role || '—';
+      if (avatarEl) avatarEl.textContent = initials;
+    }
+
+    function applyRoleScope(me) {
+      const role = String((me && me.role) || '').toLowerCase();
+      if (role !== 'manager') return;
+      const allowedTabs = new Set(['stats', 'roles', 'groups', 'events', 'feed', 'schedule', 'holidays']);
+      navBtns.forEach((btn) => {
+        btn.style.display = allowedTabs.has(btn.dataset.tab) ? '' : 'none';
+      });
+      const methodistsCard = document.querySelector('.tab[data-tab="methodists"]');
+      if (methodistsCard) methodistsCard.style.display = 'none';
+      const managersCard = document.querySelector('.tab[data-tab="managers"]');
+      if (managersCard) managersCard.style.display = 'none';
+      const pageTitle = document.getElementById('page-title');
+      if (pageTitle) pageTitle.textContent = 'Кабинет менеджера учебного процесса';
+    }
+
+    navBtns.forEach((btn) => {
+      btn.onclick = () => activateTab(btn.dataset.tab);
+    });
+
+    createBtns.forEach((btn) => {
+      btn.onclick = () => {
+        const token = tokenInput.value.trim();
+        if (token) localStorage.setItem('consoleAccessToken', token);
+        window.location.href = `${CONSOLE_CREATE_ROOT}${btn.dataset.model}/`;
+      };
+    });
+    roleJumpBtns.forEach((btn) => {
+      btn.onclick = () => {
+        const target = btn.dataset.targetTab;
+        const targetNav = Array.from(navBtns).find((n) => n.dataset.tab === target);
+        if (targetNav && targetNav.style.display !== 'none') {
+          activateTab(target);
+          return;
+        }
+        // Fallback for tabs that exist without a left-nav button (roles hub sections).
+        navBtns.forEach((x) => x.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach((t) => { t.style.display = 'none'; });
+        const tab = document.querySelector(`.tab[data-tab="${target}"]`);
+        if (tab) tab.style.display = 'block';
+        try { sessionStorage.setItem(consoleTabStorageKey, target); } catch (_) {}
+      };
+    });
+
+    document.querySelectorAll('.back-to-roles').forEach((btn) => {
+      btn.onclick = () => activateTab('roles');
+    });
+
+    async function api(path, method = 'GET', body = null) {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = tokenInput.value.trim();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+        const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        if (m) headers['X-CSRFToken'] = decodeURIComponent(m[1]);
+      }
+      const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      if (res.status === 204) return null;
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) return null;
+      return res.json();
+    }
+
+    function filterTable(inputId, tbodyId) {
+      const inp = document.getElementById(inputId);
+      const tb = document.getElementById(tbodyId);
+      inp.oninput = () => {
+        const q = inp.value.toLowerCase();
+        tb.querySelectorAll('tr').forEach((tr) => {
+          tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+    }
+
+    function renderTable(data, tbodyId, rowHtmlFn) {
+      const tb = document.getElementById(tbodyId);
+      tb.innerHTML = '';
+      data.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = rowHtmlFn(item);
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderGroups() {
+      renderTable(cache.groups, 'groups-body', (g) => `<td>${g.id}</td><td>${g.name}</td><td>${g.description || ''}</td><td class="actions"><button class="secondary" data-edit-model="groups" data-id="${g.id}">Изм</button> <button class="secondary" data-del-model="groups" data-del="${g.id}">Удалить</button></td>`);
+      attachRowActions('groups');
+    }
+    function renderParents() {
+      renderTable(cache.parents, 'parents-body', (p) => `<td>${p.id}</td><td>${p.last_name} ${p.first_name}</td><td>${p.username || ''}</td><td>${p.initial_password || ''}</td><td class="actions"><button class="secondary" data-edit-model="parents" data-id="${p.id}">Изм</button> <button class="secondary" data-del-model="parents" data-del="${p.id}">Удалить</button></td>`);
+      attachRowActions('parents');
+    }
+    function renderStudents() {
+      renderTable(cache.students, 'students-body', (s) => {
+        const grp = cache.groups.find((g) => g.id === s.group);
+        return `<td>${s.id}</td><td>${s.last_name} ${s.first_name}</td><td>${grp ? grp.name : s.group}</td><td>${s.username || ''}</td><td>${s.initial_password || ''}</td><td class="actions"><button class="secondary" data-edit-model="students" data-id="${s.id}">Изм</button> <button class="secondary" data-del-model="students" data-del="${s.id}">Удалить</button></td>`;
+      });
+      attachRowActions('students');
+    }
+    function renderTeachers() {
+      renderTable(cache.teachers, 'teachers-body', (t) => {
+        const names = (t.groups || []).map((id) => {
+          const g = cache.groups.find((x) => x.id === id);
+          return g ? g.name : id;
+        }).join(', ');
+        return `<td>${t.id}</td><td>${t.last_name} ${t.first_name}</td><td>${t.email || ''}</td><td>${names}</td><td>${t.username || ''}</td><td>${t.initial_password || ''}</td><td class="actions"><button class="secondary" data-edit-model="teachers" data-id="${t.id}">Изм</button> <button class="secondary" data-del-model="teachers" data-del="${t.id}">Удалить</button></td>`;
+      });
+      attachRowActions('teachers');
+    }
+    function renderMethodists() {
+      renderTable(cache.methodists, 'methodists-body', (u) => `<td>${u.username || ''}</td><td>${u.email || ''}</td><td>${u.role || ''}</td><td class="actions"><button class="secondary" data-edit-model="methodists" data-id="${u.id}">Изм</button> <button class="secondary" data-del-model="methodists" data-del="${u.id}">Удалить</button></td>`);
+      attachRowActions('methodists');
+    }
+    function renderManagers() {
+      renderTable(cache.managers, 'managers-body', (u) => `<td>${u.username || ''}</td><td>${u.email || ''}</td><td>${u.role || ''}</td><td class="actions"><button class="secondary" data-edit-model="managers" data-id="${u.id}">Изм</button> <button class="secondary" data-del-model="managers" data-del="${u.id}">Удалить</button></td>`);
+      attachRowActions('managers');
+    }
+    function renderMethods() {
+      const subjectFilter = document.getElementById('methods-subject-filter');
+      const selectedSubject = subjectFilter ? String(subjectFilter.value || '') : '';
+      let rows = cache.methods.slice();
+      if (selectedSubject) {
+        rows = rows.filter((m) => String(m.subject || '') === selectedSubject);
+      }
+      rows.sort((a, b) => {
+        const sa = String(a.subject_name || '');
+        const sb = String(b.subject_name || '');
+        if (sa !== sb) return sa.localeCompare(sb);
+        return Number(a.method_number || 0) - Number(b.method_number || 0);
+      });
+      renderTable(rows, 'methods-body', (m) => `<td>${m.id}</td><td>${m.method_number || ''}</td><td>${m.title}</td><td>${m.subject_name || ''}</td><td class="actions"><button class="secondary" data-edit-model="methods" data-id="${m.id}">Изм</button> <button class="secondary" data-del-model="methods" data-del="${m.id}">Удалить</button></td>`);
+      attachRowActions('methods');
+    }
+    function renderSubjects() {
+      renderTable(cache.subjects, 'subjects-body', (s) => `<td>${s.id}</td><td>${s.name}</td><td class="actions"><button class="secondary" data-edit-model="subjects" data-id="${s.id}">Изм</button> <button class="secondary" data-del-model="subjects" data-del="${s.id}">Удалить</button></td>`);
+      attachRowActions('subjects');
+    }
+    function renderSchedule() {
+      renderTable(cache.schedule, 'schedule-body', (s) => {
+        const grp = cache.groups.find((g) => g.id === s.group);
+        const moved = s.moved_from_date ? `${s.moved_from_date} -> ${s.lesson_date || ''}` : '—';
+        return `<td>${s.id}</td><td>${grp ? grp.name : s.group}</td><td>${s.lesson_date || ''}</td><td>${weekday[s.weekday] || s.weekday}</td><td>${s.lesson_number}</td><td>${s.method_package ? s.method_package.title : ''}</td><td>${moved}</td><td class="actions"><button class="secondary" data-edit-model="schedule" data-id="${s.id}">Изм</button> <button class="secondary" data-del-model="schedule" data-del="${s.id}">Удалить</button></td>`;
+      });
+      attachRowActions('schedule');
+    }
+    function renderHolidays() {
+      renderTable(cache.holidays, 'holidays-body', (h) => {
+        const grp = cache.groups.find((g) => g.id === h.group);
+        return `<td>${h.id}</td><td>${h.date || ''}</td><td>${h.title || ''}</td><td>${grp ? grp.name : 'Все группы'}</td><td class="actions"><button class="secondary" data-edit-model="holidays" data-id="${h.id}">Изм</button> <button class="secondary" data-del-model="holidays" data-del="${h.id}">Удалить</button></td>`;
+      });
+      attachRowActions('holidays');
+    }
+    function renderAssignments() {
+      renderTable(cache.assignments, 'assignments-body', (a) => {
+        const method = cache.methods.find((m) => m.id === a.method_package);
+        const teacher = cache.teachers.find((t) => t.id === a.teacher);
+        const teacherName = teacher ? `${teacher.last_name} ${teacher.first_name}` : (a.teacher_name || a.teacher);
+        return `<td>${a.id}</td><td>${method ? method.title : (a.method_title || a.method_package)}</td><td>${teacherName}</td><td>${a.deadline || ''}</td><td>${a.status || ''}</td><td>${a.can_edit ? 'да' : 'нет'}</td><td class="actions"><button class="secondary" data-edit-model="assignments" data-id="${a.id}">Изм</button> <button class="secondary" data-del-model="assignments" data-del="${a.id}">Удалить</button></td>`;
+      });
+      attachRowActions('assignments');
+    }
+    function renderEvents() {
+      renderTable(cache.events, 'events-body', (e) => {
+        const grp = cache.groups.find((g) => g.id === e.group);
+        return `<td>${e.id}</td><td>${grp ? grp.name : e.group}</td><td>${e.title || ''}</td><td>${e.event_date || ''}</td><td>${e.media_type || 'none'}</td><td class="actions"><button class="secondary" data-edit-model="events" data-id="${e.id}">Изм</button> <button class="secondary" data-del-model="events" data-del="${e.id}">Удалить</button></td>`;
+      });
+      attachRowActions('events');
+    }
+    function renderFeed() {
+      renderTable(cache.feed, 'feed-body', (p) => {
+        const grp = cache.groups.find((g) => g.id === p.group);
+        const text = (p.text || '').length > 70 ? `${p.text.slice(0, 70)}...` : (p.text || '');
+        return `<td>${p.id}</td><td>${grp ? grp.name : p.group}</td><td>${p.author_name || ''}</td><td>${text}</td><td>${p.media_type || 'none'}</td><td class="actions"><button class="secondary" data-edit-model="feed" data-id="${p.id}">Изм</button> <button class="secondary" data-del-model="feed" data-del="${p.id}">Удалить</button></td>`;
+      });
+      attachRowActions('feed');
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function setList(id, items) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!items.length) {
+        el.innerHTML = '<li>Нет данных</li>';
+        return;
+      }
+      el.innerHTML = items.map((x) => `<li>${x}</li>`).join('');
+    }
+
+    function renderBarChart(containerId, rows, valueKey = 'value', labelKey = 'label') {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const items = Array.isArray(rows) ? rows : [];
+      if (!items.length) {
+        el.innerHTML = '<div class="hint">Нет данных</div>';
+        return;
+      }
+      const max = Math.max(...items.map((x) => Number(x[valueKey] || 0)), 1);
+      el.innerHTML = items.map((x) => {
+        const value = Number(x[valueKey] || 0);
+        const width = Math.max(4, Math.round((value / max) * 100));
+        return `
+          <div class="bar-row">
+            <div class="bar-label" title="${String(x[labelKey] || '')}">${String(x[labelKey] || '')}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+            <div class="bar-value">${value}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function normalizeMinutes(timeStr) {
+      if (!timeStr || !timeStr.includes(':')) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h * 60) + (m || 0);
+    }
+
+    function updateRoleCounts() {
+      const map = [
+        ['rc-count-parents',   'rtb-parents',   cache.parents.length],
+        ['rc-count-students',  'rtb-students',  cache.students.length],
+        ['rc-count-teachers',  'rtb-teachers',  cache.teachers.length],
+        ['rc-count-methodists','rtb-methodists', cache.methodists.length],
+        ['rc-count-managers',  'rtb-managers',  cache.managers.length],
+      ];
+      map.forEach(([cardId, badgeId, val]) => { setText(cardId, val); setText(badgeId, val); });
+    }
+
+    function renderStats() {
+      updateRoleCounts();
+      setText('stat-groups',   cache.groups.length);
+      setText('stat-students', cache.students.length);
+      setText('stat-teachers', cache.teachers.length);
+      setText('stat-parents',  cache.parents.length);
+      setText('stat-methods',  cache.methods.length);
+      setText('stat-slots',    cache.schedule.length);
+
+      // --- Groups bar chart ---
+      const groupSizes = cache.groups.map((g) => ({
+        label: g.name,
+        value: cache.students.filter((s) => s.group === g.id).length,
+      })).sort((a, b) => b.value - a.value).slice(0, 6);
+      renderBarChart('stats-chart-groups', groupSizes);
+      setText('stats-footer-students', cache.students.length);
+
+      // --- Weekday heatmap ---
+      const weekdayLoad = [0,0,0,0,0,0,0];
+      cache.schedule.forEach((s) => {
+        if (Number.isInteger(s.weekday) && s.weekday >= 0 && s.weekday <= 6) weekdayLoad[s.weekday]++;
+      });
+      const maxLoad = Math.max(...weekdayLoad, 1);
+      const peakIdx = weekdayLoad.indexOf(maxLoad);
+      const peakEl = document.getElementById('stats-footer-peak');
+      if (peakEl) peakEl.textContent = maxLoad > 0 ? `${weekday[peakIdx]} — ${maxLoad} занятий` : 'нет данных';
+      const hmEl = document.getElementById('stats-weekday-heatmap');
+      if (hmEl) {
+        hmEl.innerHTML = weekdayLoad.map((count, i) => {
+          const fillPx = Math.max(3, Math.round((count / maxLoad) * 48));
+          const color = count > 0 ? `color:#19d1ff` : `color:var(--muted)`;
+          return `<div class="wd-cell" style="--fill:${fillPx}px">
+            <span class="wd-day">${weekday[i]}</span>
+            <span class="wd-val" style="${color}">${count}</span>
+          </div>`;
+        }).join('');
+      }
+
+      // --- Roles distribution ---
+      const rolesData = [
+        { label:'Ученики',   value: cache.students.length,   color:'#19d1ff' },
+        { label:'Родители',  value: cache.parents.length,    color:'#4ade80' },
+        { label:'Преподы',   value: cache.teachers.length,   color:'#a78bfa' },
+        { label:'Методисты', value: cache.methodists.length, color:'#fb923c' },
+        { label:'Менеджеры', value: cache.managers.length,   color:'#f472b6' },
+      ];
+      const rolesTotal = rolesData.reduce((s, r) => s + r.value, 0) || 1;
+      const rolesEl = document.getElementById('stats-chart-roles');
+      if (rolesEl) {
+        rolesEl.innerHTML = rolesData.map((r) => {
+          const pct = Math.round((r.value / rolesTotal) * 100);
+          const w = Math.max(pct > 0 ? 3 : 0, pct);
+          return `<div>
+            <div class="role-row-hdr"><span class="role-name">${r.label}</span><span class="role-badge">${r.value} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></span></div>
+            <div class="role-track"><div class="role-fill" style="width:${w}%;background:${r.color}"></div></div>
+          </div>`;
+        }).join('');
+      }
+
+      // --- Timeline ---
+      const now = new Date();
+      const nowDay = (now.getDay() + 6) % 7;
+      const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+      const nextLessons = cache.schedule.map((s) => {
+        const lessonMin = normalizeMinutes(s.start_time);
+        let deltaDays = s.weekday - nowDay;
+        if (deltaDays < 0 || (deltaDays === 0 && lessonMin < nowMinutes)) deltaDays += 7;
+        const grp = cache.groups.find((g) => g.id === s.group);
+        return { day: weekday[s.weekday] || '?', time: s.start_time || '--:--', group: grp ? grp.name : `#${s.group}`, num: s.lesson_number, score: deltaDays * 1440 + lessonMin };
+      }).sort((a, b) => a.score - b.score).slice(0, 6);
+      const tlEl = document.getElementById('stats-next-lessons');
+      if (tlEl) {
+        if (!nextLessons.length) {
+          tlEl.innerHTML = '<div class="hint">Нет данных</div>';
+        } else {
+          tlEl.innerHTML = nextLessons.map((l) => `
+            <div class="tl-item">
+              <div class="tl-day">${l.day}</div>
+              <div class="tl-time">${l.time}</div>
+              <div class="tl-group">${l.group}</div>
+              <div class="tl-num">Урок ${l.num}</div>
+            </div>`).join('');
+        }
+      }
+    }
+
+    function attachRowActions(model) {
+      document.querySelectorAll(`[data-edit-model="${model}"]`).forEach((btn) => {
+        btn.onclick = () => {
+          const token = tokenInput.value.trim();
+          if (token) localStorage.setItem('consoleAccessToken', token);
+          window.location.href = `${CONSOLE_CREATE_ROOT}${model}/?id=${btn.dataset.id}`;
+        };
+      });
+      document.querySelectorAll(`[data-del-model="${model}"]`).forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('Удалить запись?')) return;
+          try {
+            await api(`/api/${apiModelMap[model]}/${btn.dataset.del}/`, 'DELETE');
+            await reloadAll();
+          } catch (e) {
+            status('me-info', e.message);
+          }
+        };
+      });
+    }
+
+    async function loadGroups() { cache.groups = await api('/api/groups/'); renderGroups(); }
+    async function loadParents() { cache.parents = await api('/api/parents/'); renderParents(); }
+    async function loadTeachers() { cache.teachers = await api('/api/teachers/'); renderTeachers(); }
+    async function loadStudents() { cache.students = await api('/api/students/'); renderStudents(); }
+    async function loadMethods() {
+      cache.methods = await api('/api/method-packages/');
+      const sel = document.getElementById('methods-subject-filter');
+      if (sel) {
+        const subjects = Array.from(new Map(cache.methods.filter((m) => m.subject).map((m) => [m.subject, m.subject_name || `Предмет ${m.subject}`])).entries());
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">Все предметы</option>';
+        subjects.sort((a, b) => String(a[1]).localeCompare(String(b[1]))).forEach(([id, name]) => {
+          const o = document.createElement('option');
+          o.value = String(id);
+          o.textContent = name;
+          sel.appendChild(o);
+        });
+        if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+      }
+      renderMethods();
+    }
+    async function loadMethodists() { cache.methodists = await api('/api/profiles/?role=methodist'); renderMethodists(); }
+    async function loadManagers() { cache.managers = await api('/api/profiles/?role=manager'); renderManagers(); }
+    async function loadSubjects() { cache.subjects = await api('/api/subjects/'); renderSubjects(); }
+    async function loadSchedule() { cache.schedule = await api('/api/schedule/'); renderSchedule(); }
+    async function loadAssignments() { cache.assignments = await api('/api/method-assignments/'); renderAssignments(); }
+    async function loadEvents() { cache.events = await api('/api/events/'); renderEvents(); }
+    async function loadFeed() { cache.feed = await api('/api/feed-posts/'); renderFeed(); }
+    async function loadHolidays() { cache.holidays = await api('/api/holidays/'); renderHolidays(); }
+
+    async function reloadAll() {
+      const tasks = [
+        loadGroups().catch((e) => status('status-group', e.message)),
+        loadParents().catch((e) => status('status-parent', e.message)),
+        loadTeachers().catch((e) => status('status-teacher', e.message)),
+        loadStudents().catch((e) => status('status-student', e.message)),
+        loadMethodists().catch((e) => status('status-methodists', e.message)),
+        loadManagers().catch((e) => status('status-managers', e.message)),
+        loadSubjects().catch((e) => status('status-subjects', e.message)),
+        loadMethods().catch((e) => status('status-method', e.message)),
+        loadSchedule().catch((e) => status('status-schedule', e.message)),
+        loadAssignments().catch((e) => status('status-assignments', e.message)),
+        loadEvents().catch((e) => status('status-events', e.message)),
+        loadFeed().catch((e) => status('status-feed', e.message)),
+        loadHolidays().catch((e) => status('status-holidays', e.message)),
+      ];
+      await Promise.all(tasks);
+      renderStats();
+    }
+
+    function setAuthorized() {
+      const btnAuth = document.getElementById('btn-auth');
+      if (btnAuth) btnAuth.style.display = 'none';
+      tokenInput.disabled = true;
+      tokenInput.style.opacity = '0.45';
+      tokenInput.style.cursor = 'not-allowed';
+      tokenInput.style.pointerEvents = 'none';
+    }
+
+    document.getElementById('btn-auth').onclick = async () => {
+      const btnAuth = document.getElementById('btn-auth');
+      btnAuth.textContent = 'Загрузка...';
+      btnAuth.disabled = true;
+      try {
+        try {
+          const me = await api('/api/me/');
+          applyRoleScope(me); updateSidebarUser(me);
+        } catch (_) {}
+        await reloadAll();
+        let savedTab = '';
+        try { savedTab = sessionStorage.getItem(consoleTabStorageKey) || ''; } catch (_) {}
+        activateTab(requestedTab || savedTab || 'stats');
+        status('me-info', '');
+        setAuthorized();
+      } catch (e) {
+        status('me-info', e.message);
+        btnAuth.textContent = 'Авторизоваться';
+        btnAuth.disabled = false;
+      }
+    };
+
+    document.getElementById('btn-logout').onclick = async () => {
+      try {
+        await fetch('/api/session-logout/', { method: 'POST' });
+      } catch (_) {}
+      localStorage.removeItem('consoleAccessToken');
+      sessionStorage.removeItem('student_token');
+      sessionStorage.removeItem('student_id');
+      window.location.href = '/login/';
+    };
+
+    filterTable('search-groups', 'groups-body');
+    filterTable('search-parents', 'parents-body');
+    filterTable('search-students', 'students-body');
+    filterTable('search-teachers', 'teachers-body');
+    filterTable('search-methodists', 'methodists-body');
+    filterTable('search-managers', 'managers-body');
+    filterTable('search-subjects', 'subjects-body');
+    filterTable('search-methods', 'methods-body');
+    document.getElementById('methods-subject-filter')?.addEventListener('change', renderMethods);
+    filterTable('search-schedule', 'schedule-body');
+    filterTable('search-assignments', 'assignments-body');
+    filterTable('search-events', 'events-body');
+    filterTable('search-feed', 'feed-body');
+    filterTable('search-holidays', 'holidays-body');
+
+    // Sidebar collapse
+    const sidebar = document.getElementById('main-sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const SIDEBAR_KEY = 'sidebar_collapsed';
+    function setSidebarCollapsed(collapsed) {
+      if (collapsed) {
+        sidebar.classList.add('collapsed');
+        sessionStorage.setItem(SIDEBAR_KEY, '1');
+      } else {
+        sidebar.classList.remove('collapsed');
+        sessionStorage.setItem(SIDEBAR_KEY, '0');
+      }
+    }
+    sidebarToggle.onclick = () => setSidebarCollapsed(!sidebar.classList.contains('collapsed'));
+    try {
+      if (sessionStorage.getItem(SIDEBAR_KEY) === '1') setSidebarCollapsed(true);
+    } catch (_) {}
+
+    (async () => {
+      if (!tokenInput.value.trim()) return;
+      try {
+        try {
+          const me = await api('/api/me/');
+          applyRoleScope(me); updateSidebarUser(me);
+        } catch (_) {}
+        await reloadAll();
+        let savedTab = '';
+        try { savedTab = sessionStorage.getItem(consoleTabStorageKey) || ''; } catch (_) {}
+        activateTab(requestedTab || savedTab || 'stats');
+        status('me-info', '');
+        setAuthorized();
+      } catch (_) {}
+    })();
+  </script>
+</body>
+</html>

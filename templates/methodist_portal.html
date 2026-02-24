@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ portal_title }}</title>
+  <style>
+    :root {
+      --bg: #0b1021;
+      --panel: #0f162e;
+      --border: rgba(255,255,255,.10);
+      --text: #f4f7ff;
+      --muted: #aeb8d2;
+      --blue: #2b67df;
+      --cyan: #19d1ff;
+      --green: #36c98f;
+      --yellow: #ffc85a;
+      --red: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 18px;
+      color: var(--text);
+      font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(25,209,255,.08), transparent 28%),
+        radial-gradient(circle at 88% 14%, rgba(255,107,107,.08), transparent 26%),
+        var(--bg);
+    }
+    .wrap { max-width: 1600px; margin: 0 auto; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+    h1 { margin:0; font-size: clamp(28px, 3vw, 42px); }
+    .top-right { display:flex; align-items:center; gap:10px; }
+    .pill, .btn {
+      border:1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.04);
+      color: var(--text); padding: 9px 12px; font-weight:700;
+    }
+    .pill { font-size:13px; color: var(--muted); }
+    .btn { cursor:pointer; }
+    .btn.primary { background: linear-gradient(120deg, #1f4fb5, #2b67df); border-color: rgba(43,103,223,.35); }
+    .portal-layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .portal-content { min-width: 0; }
+    .tabs {
+      display:flex;
+      gap:8px;
+      margin:0;
+      flex-wrap:wrap;
+      flex-direction: column;
+      align-items: stretch;
+      position: sticky;
+      top: 12px;
+    }
+    .tab-btn {
+      border:1px solid rgba(255,255,255,.14); background:#17263f; color:#eef4ff;
+      border-radius: 14px; padding: 12px 16px; cursor:pointer; font-weight:700;
+      width: 100%;
+      text-align: left;
+    }
+    .tab-btn.active { background:#173a76; border-color:#2d67d8; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .panel {
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: linear-gradient(165deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      padding:14px;
+      min-width:0;
+    }
+    .panel h2 { margin:0 0 10px; font-size: 18px; }
+    label { display:block; margin:10px 0 4px; color: var(--muted); font-size:12px; }
+    input, select, textarea {
+      width:100%; border:1px solid var(--border); background:#0d1730; color:var(--text);
+      border-radius:10px; padding:10px 12px; outline:none;
+    }
+    textarea { resize: vertical; min-height: 88px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .hint { color: var(--muted); font-size:12px; margin-top:6px; white-space: pre-line; }
+    .status-line { color: var(--muted); font-size:12px; margin-top:8px; white-space: pre-line; }
+    .assign-grid { display:grid; grid-template-columns: 420px 1fr; gap:12px; }
+    .matrix-wrap { border:1px solid var(--border); border-radius:12px; overflow:auto; background: rgba(255,255,255,.02); }
+    .matrix-table { border-collapse: collapse; width:100%; min-width: 680px; }
+    .matrix-table th, .matrix-table td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle; }
+    .matrix-table th { background: rgba(25,209,255,.08); color:#e9f7ff; font-weight:700; }
+    .matrix-table tr:last-child td { border-bottom:none; }
+    .matrix-num { width:60px; color:#d5e8ff; font-weight:700; }
+    .matrix-title.placeholder { color: var(--muted); font-style: italic; }
+    .matrix-state { width:220px; }
+    .badge {
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--border); border-radius:999px; padding:4px 9px; font-size:12px; font-weight:700;
+      background: rgba(255,255,255,.04);
+    }
+    .badge.ready { color:#b7f3ff; border-color: rgba(25,209,255,.25); background: rgba(25,209,255,.10); }
+    .badge.missing { color:#c5ccdc; }
+    .badge.assigned { color:#c2f8e1; border-color: rgba(54,201,143,.28); background: rgba(54,201,143,.10); }
+    .badge.todo { color:#e8edf8; }
+    .badge.in_progress { color:#b7f3ff; background:rgba(25,209,255,.10); border-color:rgba(25,209,255,.25); }
+    .badge.review { color:#ffe6a6; background:rgba(255,200,90,.10); border-color:rgba(255,200,90,.25); }
+    .badge.done { color:#c2f8e1; background:rgba(54,201,143,.10); border-color:rgba(54,201,143,.25); }
+    .assign-summary { margin-top:10px; }
+    .control-grid { display:grid; grid-template-columns: 460px 1fr; gap:12px; }
+    .filters { display:grid; grid-template-columns: 1.1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+    .assignments { display:grid; gap:8px; max-height:620px; overflow:auto; padding-right:4px; }
+    .assignment-card {
+      border:1px solid var(--border); border-radius:12px; background: rgba(255,255,255,.03); padding:10px; cursor:pointer;
+    }
+    .assignment-card.active { border-color: rgba(43,103,223,.55); box-shadow: inset 0 0 0 1px rgba(43,103,223,.25); background: rgba(43,103,223,.08); }
+    .assignment-card-title { font-weight:700; margin-bottom:4px; }
+    .assignment-card-meta { color: var(--muted); font-size:12px; line-height:1.3; }
+    .detail-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+    .detail-title { font-size:20px; font-weight:800; }
+    .detail-meta { color: var(--muted); font-size:13px; line-height:1.4; margin-bottom:8px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .action-btn {
+      border:1px solid var(--border); background: rgba(255,255,255,.05); color:var(--text);
+      border-radius:10px; padding:8px 10px; cursor:pointer; font-weight:700; text-decoration:none;
+    }
+    .action-btn.primary { background: linear-gradient(120deg, #1f4fb5, #2b67df); border-color: rgba(43,103,223,.35); }
+    .action-btn.ok { background: rgba(54,201,143,.16); border-color: rgba(54,201,143,.35); }
+    .action-btn.warn { background: rgba(255,107,107,.14); border-color: rgba(255,107,107,.3); }
+    .comments {
+      border:1px solid var(--border); border-radius:12px; padding:10px;
+      background: rgba(255,255,255,.02); max-height:360px; overflow:auto;
+      display:grid; gap:8px;
+    }
+    .comment { border:1px solid var(--border); border-radius:10px; padding:8px 10px; background: rgba(255,255,255,.03); }
+    .comment.self { border-color: rgba(25,209,255,.30); background: rgba(25,209,255,.07); }
+    .comment-meta { display:flex; justify-content:space-between; gap:8px; color: var(--muted); font-size:11px; margin-bottom:4px; }
+    .comment-text { white-space: pre-wrap; line-height:1.35; }
+    .comment-send { display:grid; grid-template-columns: 1fr auto; gap:8px; margin-top:8px; }
+    .empty {
+      color: var(--muted); border:1px dashed rgba(255,255,255,.14); border-radius:12px;
+      padding:10px; text-align:center; background: rgba(255,255,255,.02);
+    }
+    .method-preview-wrap {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,.02);
+    }
+    .manage-grid { display:grid; grid-template-columns: 420px 1fr; gap:12px; }
+    .subject-list, .method-list {
+      display:grid; gap:8px; max-height:620px; overflow:auto; padding-right:4px;
+    }
+    .subject-item, .method-item {
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(255,255,255,.03);
+      padding:10px;
+      cursor:pointer;
+    }
+    .subject-item.active, .method-item.active {
+      border-color: rgba(43,103,223,.55);
+      box-shadow: inset 0 0 0 1px rgba(43,103,223,.25);
+      background: rgba(43,103,223,.08);
+    }
+    .subject-item-title, .method-item-title { font-weight:700; }
+    .subject-item-meta, .method-item-meta { color: var(--muted); font-size:12px; margin-top:4px; line-height:1.35; }
+    .method-toolbar {
+      display:grid;
+      grid-template-columns: 220px 1fr auto;
+      gap:8px;
+      margin-bottom:10px;
+      align-items:center;
+    }
+    .method-preview-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+    .live-page {
+      background:#f5f7fb;
+      color:#1d2433;
+      border-radius:12px;
+      border:1px solid #dfe5f1;
+      padding:20px;
+      min-height:220px;
+    }
+    .live-header { text-align:center; margin-bottom:18px; }
+    .live-badge { display:inline-block; padding:8px 14px; border-radius:999px; background:#eaf2ff; color:#2f5cab; font-size:12px; font-weight:700; margin-bottom:8px; }
+    .live-title { margin:0; font-size:26px; line-height:1.2; font-weight:800; color:#17203a; }
+    .live-desc { margin:10px auto 0; max-width:820px; color:#52607a; text-align:center; }
+    .live-material-link { display:inline-block; margin-top:10px; padding:8px 12px; border-radius:10px; background:#1f6feb; color:#fff; font-weight:700; text-decoration:none; }
+    .live-block { margin:16px 0; }
+    .live-block h3 { margin:0 0 8px; font-size:25px; line-height:1.25; }
+    .live-block p { margin:0; line-height:1.65; }
+    .live-quote { border-left:4px solid #6d8ed6; background:#eaf0ff; color:#27334d; padding:12px 14px; border-radius:8px; }
+    .live-block img { max-width:100%; border-radius:10px; border:1px solid #d8dfef; display:block; }
+    .live-block iframe { width:100%; min-height:340px; border:none; border-radius:10px; background:#0f172a; display:block; }
+    .live-caption { margin-top:6px; font-size:12px; color:#66758f; }
+    @media (max-width: 1180px) {
+      .portal-layout { grid-template-columns: 1fr; }
+      .tabs {
+        position: static;
+        flex-direction: row;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .tab-btn {
+        width: auto;
+        text-align: center;
+      }
+      .assign-grid, .control-grid, .manage-grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      .method-toolbar { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      body { padding: 12px; }
+      .row { grid-template-columns: 1fr; }
+      .comment-send { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>{{ portal_title }}</h1>
+      <div class="top-right">
+        <div id="who" class="pill">Загрузка...</div>
+        <button id="logout" class="btn" type="button">Выйти</button>
+      </div>
+    </div>
+
+    <div class="portal-layout">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="assign" type="button">Назначение</button>
+        <button class="tab-btn" data-tab="control" type="button">Контроль</button>
+        <button class="tab-btn" data-tab="subjects" type="button">Предметы</button>
+        <button class="tab-btn" data-tab="methods" type="button">Методпакеты</button>
+      </div>
+
+      <div class="portal-content">
+    <section id="pane-assign" class="tab-pane active">
+      <div class="assign-grid">
+        <div class="panel">
+          <h2>Назначить разработку по предмету</h2>
+          <label>Преподаватель</label>
+          <select id="assign-teacher"></select>
+          <label>Предмет</label>
+          <select id="assign-subject"></select>
+          <div class="row">
+            <div>
+              <label>Начать обновление с урока</label>
+              <select id="assign-start-method">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
+            </div>
+            <div>
+              <label>Дедлайн (необязательно)</label>
+              <input id="assign-deadline" type="date" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Статус при создании</label>
+              <select id="assign-status">
+                <option value="todo">К выполнению</option>
+                <option value="in_progress">В работе</option>
+              </select>
+            </div>
+            <div></div>
+          </div>
+          <label>Комментарий / задача</label>
+          <textarea id="assign-notes" placeholder="Что именно нужно сделать, на что обратить внимание..."></textarea>
+          <button id="assign-bulk-btn" class="btn primary" type="button" style="margin-top:10px;">Назначить все доступные методы предмета</button>
+          <div class="hint">Назначаются методы выбранного предмета начиная с указанного урока. Если номеров нет, создаются заготовки 1-12 и назначаются по очереди.</div>
+          <div id="assign-create-status" class="status-line"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Шаблон 12 методов по предмету</h2>
+          <div id="assign-matrix-summary" class="hint">Выберите предмет и преподавателя</div>
+          <div id="assign-matrix" class="matrix-wrap" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pane-control" class="tab-pane">
+      <div class="control-grid">
+        <div class="panel">
+          <h2>Контроль методпакетов</h2>
+          <div class="filters">
+            <select id="filter-teacher"></select>
+            <select id="filter-status">
+              <option value="">Все статусы</option>
+              <option value="todo">К выполнению</option>
+              <option value="in_progress">В работе</option>
+              <option value="review">На проверке</option>
+              <option value="done">Подтверждено</option>
+            </select>
+            <select id="filter-subject"></select>
+          </div>
+          <div id="list-counter" class="hint"></div>
+          <div id="assignments-list" class="assignments" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="panel">
+          <div id="assignment-detail">
+            <div class="empty">Выберите назначение, чтобы открыть проверку и комментарии.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pane-subjects" class="tab-pane">
+      <div class="manage-grid">
+        <div class="panel">
+          <h2>Управление предметами</h2>
+          <div class="hint">Методист может создавать и редактировать предметы для методпакетов и расписания.</div>
+          <label>Название предмета</label>
+          <input id="subject-name-input" placeholder="Например: Python / Unity / Blender" />
+          <div class="actions" style="margin-top:10px;">
+            <button id="subject-save-btn" class="action-btn primary" type="button">Сохранить</button>
+            <button id="subject-reset-btn" class="action-btn" type="button">Новый предмет</button>
+            <button id="subject-delete-btn" class="action-btn warn" type="button" style="display:none;">Удалить</button>
+          </div>
+          <div id="subject-form-status" class="status-line"></div>
+        </div>
+        <div class="panel">
+          <h2>Список предметов</h2>
+          <input id="subjects-search" placeholder="Поиск по предметам" />
+          <div id="subjects-counter" class="hint"></div>
+          <div id="subjects-list" class="subject-list" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pane-methods" class="tab-pane">
+      <div class="manage-grid">
+        <div class="panel">
+          <h2>Список методпакетов</h2>
+          <div class="method-toolbar">
+            <select id="methods-subject-filter"></select>
+            <input id="methods-search" placeholder="Поиск по названию / номеру" />
+            <button id="method-create-btn" class="btn primary" type="button">Создать</button>
+          </div>
+          <div class="hint">Создание и редактирование открываются в конструкторе (как в админке), но доступно методисту.</div>
+          <div id="methods-counter" class="hint"></div>
+          <div id="methods-list" class="method-list" style="margin-top:8px;"></div>
+        </div>
+        <div class="panel">
+          <div id="methods-detail">
+            <div class="empty">Выберите методпакет, чтобы просмотреть, открыть в конструкторе или удалить.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      token: '',
+      me: null,
+      teachers: [],
+      methods: [],
+      subjects: [],
+      assignments: [],
+      selectedAssignmentId: null,
+      commentsByAssignment: {},
+      selectedSubjectManageId: null,
+      selectedMethodManageId: null,
+      activeTab: 'assign',
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const methodistTabStorageKey = 'methodist_portal_active_tab';
+    function esc(text) {
+      return String(text || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    }
+    function setStatus(id, text) { const el = $(id); if (el) el.textContent = text || ''; }
+    function statusLabel(code) {
+      const map = { todo:'К выполнению', in_progress:'В работе', review:'На проверке', done:'Подтверждено' };
+      return map[String(code || '')] || (code || '—');
+    }
+    function fmtDateTime(v) {
+      if (!v) return '';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleString([], { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+    function toEmbedUrl(url) {
+      if (!url) return null;
+      const clean = String(url).trim();
+      if (clean.includes('youtube.com/watch?v=')) {
+        const id = clean.split('v=')[1].split('&')[0];
+        return `https://www.youtube.com/embed/${id}`;
+      }
+      if (clean.includes('youtu.be/')) {
+        const id = clean.split('youtu.be/')[1].split('?')[0];
+        return `https://www.youtube.com/embed/${id}`;
+      }
+      return null;
+    }
+    function normalizeBlockStyle(style, type) {
+      const s = style || {};
+      return {
+        textColor: String(s.textColor || (type === 'quote' ? '#27334d' : '#1d2433')),
+        fontSize: Number(s.fontSize || (type === 'heading' ? 30 : 16)),
+        textAlign: String(s.textAlign || 'left'),
+        maxWidth: Number(s.maxWidth || 100),
+        radius: Number(s.radius || 10),
+        bgColor: String(s.bgColor || (type === 'quote' ? '#eaf0ff' : 'transparent')),
+        captionColor: String(s.captionColor || '#66758f'),
+        captionSize: Number(s.captionSize || 12),
+      };
+    }
+    function renderMethodBlocks(container, methodObj, doc = document) {
+      const blocks = Array.isArray(methodObj.content_blocks) ? methodObj.content_blocks : [];
+      if (!blocks.length) {
+        const empty = doc.createElement('div');
+        empty.className = 'live-desc';
+        empty.textContent = 'Для этого методпакета пока не добавлены блоки.';
+        container.appendChild(empty);
+        return;
+      }
+      blocks.forEach((b) => {
+        const box = doc.createElement('div');
+        box.className = 'live-block';
+        const style = normalizeBlockStyle(b.style, b.type);
+        box.style.textAlign = style.textAlign;
+        if (b.type === 'heading' && b.text) {
+          const h = doc.createElement('h3');
+          h.textContent = b.text;
+          h.style.color = style.textColor;
+          h.style.fontSize = `${style.fontSize}px`;
+          box.appendChild(h);
+        }
+        if (b.type === 'text' && b.text) {
+          const p = doc.createElement('p');
+          p.textContent = b.text;
+          p.style.color = style.textColor;
+          p.style.fontSize = `${style.fontSize}px`;
+          box.appendChild(p);
+        }
+        if (b.type === 'quote' && b.text) {
+          const q = doc.createElement('div');
+          q.className = 'live-quote';
+          q.textContent = b.text;
+          q.style.color = style.textColor;
+          q.style.fontSize = `${style.fontSize}px`;
+          q.style.background = style.bgColor;
+          box.appendChild(q);
+        }
+        if (b.type === 'image' && b.url) {
+          const img = doc.createElement('img');
+          img.src = b.url;
+          img.alt = b.caption || 'image';
+          img.style.maxWidth = `${style.maxWidth}%`;
+          img.style.borderRadius = `${style.radius}px`;
+          if (style.textAlign === 'center') img.style.margin = '0 auto';
+          if (style.textAlign === 'right') img.style.margin = '0 0 0 auto';
+          box.appendChild(img);
+          if (b.caption) {
+            const cap = doc.createElement('div');
+            cap.className = 'live-caption';
+            cap.textContent = b.caption;
+            cap.style.color = style.captionColor;
+            cap.style.fontSize = `${style.captionSize}px`;
+            box.appendChild(cap);
+          }
+        }
+        if (b.type === 'video' && b.url) {
+          const embed = toEmbedUrl(b.url);
+          if (embed) {
+            const iframe = doc.createElement('iframe');
+            iframe.src = embed;
+            iframe.allowFullscreen = true;
+            iframe.style.maxWidth = `${style.maxWidth}%`;
+            iframe.style.borderRadius = `${style.radius}px`;
+            if (style.textAlign === 'center') iframe.style.margin = '0 auto';
+            if (style.textAlign === 'right') iframe.style.margin = '0 0 0 auto';
+            box.appendChild(iframe);
+          } else {
+            const a = doc.createElement('a');
+            a.href = b.url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = 'Открыть видео';
+            a.className = 'action-btn';
+            box.appendChild(a);
+          }
+          if (b.caption) {
+            const cap = doc.createElement('div');
+            cap.className = 'live-caption';
+            cap.textContent = b.caption;
+            cap.style.color = style.captionColor;
+            cap.style.fontSize = `${style.captionSize}px`;
+            box.appendChild(cap);
+          }
+        }
+        container.appendChild(box);
+      });
+    }
+    function renderMethodLivePage(container, methodObj, doc = document) {
+      const page = doc.createElement('div');
+      page.className = 'live-page';
+      const header = doc.createElement('div');
+      header.className = 'live-header';
+      header.innerHTML = `<div class="live-badge">Методпакет</div><h2 class="live-title">${esc(methodObj.title || 'Название урока')}</h2>`;
+      page.appendChild(header);
+      const meta = doc.createElement('div');
+      meta.className = 'live-desc';
+      meta.textContent = `${methodObj.subject_name || 'Без предмета'} · Метод ${Number(methodObj.method_number || 0) || '—'}`;
+      page.appendChild(meta);
+      if (methodObj.description) {
+        const d = doc.createElement('div');
+        d.className = 'live-desc';
+        d.textContent = methodObj.description;
+        page.appendChild(d);
+      }
+      if (methodObj.material_url) {
+        const center = doc.createElement('div');
+        center.style.textAlign = 'center';
+        const a = doc.createElement('a');
+        a.className = 'live-material-link';
+        a.href = methodObj.material_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'Материалы';
+        center.appendChild(a);
+        page.appendChild(center);
+      }
+      renderMethodBlocks(page, methodObj, doc);
+      container.appendChild(page);
+    }
+    function openMethodInNewTab(methodObj) {
+      if (!methodObj) return;
+      const win = window.open('', '_blank');
+      if (!win) return;
+      const title = esc(methodObj.title || 'Методпакет');
+      win.document.open();
+      win.document.write(`<!doctype html><html lang="ru"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>${title}</title><style>
+      body{margin:0;background:#0b1021;color:#f0f5ff;font-family:Trebuchet MS,Segoe UI,system-ui,sans-serif;padding:18px;}
+      .wrap{max-width:1080px;margin:0 auto;}
+      .live-page{background:#f5f7fb;color:#1d2433;border-radius:12px;border:1px solid #dfe5f1;padding:20px;min-height:220px;}
+      .live-header{text-align:center;margin-bottom:18px;}
+      .live-badge{display:inline-block;padding:8px 14px;border-radius:999px;background:#eaf2ff;color:#2f5cab;font-size:12px;font-weight:700;margin-bottom:8px;}
+      .live-title{margin:0;font-size:30px;line-height:1.2;font-weight:800;color:#17203a;}
+      .live-desc{margin:10px auto 0;max-width:820px;color:#52607a;text-align:center;}
+      .live-material-link{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:10px;background:#1f6feb;color:#fff;font-weight:700;text-decoration:none;}
+      .live-block{margin:16px 0;}
+      .live-block h3{margin:0 0 8px;font-size:25px;line-height:1.25;}
+      .live-block p{margin:0;line-height:1.65;}
+      .live-quote{border-left:4px solid #6d8ed6;background:#eaf0ff;color:#27334d;padding:12px 14px;border-radius:8px;}
+      .live-block img{max-width:100%;border-radius:10px;border:1px solid #d8dfef;display:block;}
+      .live-block iframe{width:100%;min-height:360px;border:none;border-radius:10px;background:#0f172a;display:block;}
+      .live-caption{margin-top:6px;font-size:12px;color:#66758f;}
+      .action-btn{display:inline-block;border:1px solid #d8dfef;background:#fff;color:#334155;border-radius:8px;padding:6px 10px;text-decoration:none;font-size:13px;}
+      </style></head><body><div class="wrap"><div id="mp-root"></div></div></body></html>`);
+      win.document.close();
+      const root = win.document.getElementById('mp-root');
+      if (root) renderMethodLivePage(root, methodObj, win.document);
+    }
+    async function api(url, method = 'GET', body = null) {
+      const headers = {};
+      if (!(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      if (state.token) headers.Authorization = 'Bearer ' + state.token;
+      const res = await fetch(url, { method, headers, body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : null });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      if (res.status === 204) return null;
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) return null;
+      return res.json();
+    }
+
+    function fillSelect(id, items, placeholder, getValue, getLabel) {
+      const sel = $(id);
+      if (!sel) return;
+      sel.innerHTML = '';
+      if (placeholder != null) {
+        const o = document.createElement('option');
+        o.value = '';
+        o.textContent = placeholder;
+        sel.appendChild(o);
+      }
+      items.forEach((item) => {
+        const o = document.createElement('option');
+        o.value = getValue(item);
+        o.textContent = getLabel(item);
+        sel.appendChild(o);
+      });
+    }
+
+    function selectedAssignment() {
+      return state.assignments.find((a) => Number(a.id) === Number(state.selectedAssignmentId)) || null;
+    }
+    function methodById(id) {
+      return state.methods.find((m) => Number(m.id) === Number(id)) || null;
+    }
+    function subjectById(id) {
+      return state.subjects.find((s) => Number(s.id) === Number(id)) || null;
+    }
+    function assignmentForTeacherAndMethod(teacherId, methodId) {
+      return state.assignments.find((a) => Number(a.teacher) === Number(teacherId) && Number(a.method_package) === Number(methodId)) || null;
+    }
+
+    function switchTab(name) {
+      state.activeTab = name;
+      try { sessionStorage.setItem(methodistTabStorageKey, name); } catch (_) {}
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.tab-pane').forEach((p) => p.classList.toggle('active', p.id === `pane-${name}`));
+      if (name === 'subjects') renderSubjectsManage();
+      if (name === 'methods') {
+        renderMethodsManageList();
+        renderMethodsManageDetail();
+      }
+    }
+
+    function rebuildCommonSelects() {
+      fillSelect('assign-teacher', state.teachers, 'Выберите преподавателя', (t) => t.id, (t) => `${t.last_name || ''} ${t.first_name || ''}`.trim() || `ID ${t.id}`);
+      fillSelect('filter-teacher', state.teachers, 'Все преподаватели', (t) => t.id, (t) => `${t.last_name || ''} ${t.first_name || ''}`.trim() || `ID ${t.id}`);
+
+      const subjects = state.subjects.slice().sort((a,b) => String(a.name || '').localeCompare(String(b.name || '')));
+      fillSelect('assign-subject', subjects, 'Выберите предмет', (s) => s.id, (s) => s.name || `ID ${s.id}`);
+      fillSelect('filter-subject', subjects, 'Все предметы', (s) => s.name || '', (s) => s.name || `ID ${s.id}`);
+      fillSelect('methods-subject-filter', subjects, 'Все предметы', (s) => s.id, (s) => s.name || `ID ${s.id}`);
+    }
+
+    function syncConstructorToken() {
+      try {
+        if (state.token) localStorage.setItem('consoleAccessToken', state.token);
+      } catch (_) {}
+    }
+
+    function openMethodConstructor(methodId = null) {
+      syncConstructorToken();
+      const returnTo = `/methodist/?token=${encodeURIComponent(state.token || '')}&return_tab=methods`;
+      const q = methodId
+        ? `/console/create/methods/?id=${methodId}&return_to=${encodeURIComponent(returnTo)}`
+        : `/console/create/methods/?return_to=${encodeURIComponent(returnTo)}`;
+      window.open(q, '_blank');
+    }
+
+    async function refreshSubjectsAndMethods() {
+      const [subjects, methods] = await Promise.all([
+        api('/api/subjects/'),
+        api('/api/method-packages/'),
+      ]);
+      state.subjects = subjects || [];
+      state.methods = (methods || []).slice().sort((a, b) => {
+        const s = String(a.subject_name || '').localeCompare(String(b.subject_name || ''));
+        if (s) return s;
+        const n = Number(a.method_number || 0) - Number(b.method_number || 0);
+        if (n) return n;
+        return String(a.title || '').localeCompare(String(b.title || ''));
+      });
+      if (state.selectedMethodManageId && !methodById(state.selectedMethodManageId)) state.selectedMethodManageId = null;
+      if (state.selectedSubjectManageId && !subjectById(state.selectedSubjectManageId)) state.selectedSubjectManageId = null;
+      rebuildCommonSelects();
+      renderAssignMatrix();
+      renderAssignmentsList();
+      renderSubjectsManage();
+      renderMethodsManageList();
+      renderMethodsManageDetail();
+    }
+
+    function resetSubjectForm() {
+      state.selectedSubjectManageId = null;
+      $('subject-name-input').value = '';
+      $('subject-delete-btn').style.display = 'none';
+      setStatus('subject-form-status', '');
+      renderSubjectsManage();
+    }
+
+    function renderSubjectsManage() {
+      const q = String(($('subjects-search') && $('subjects-search').value) || '').trim().toLowerCase();
+      const items = state.subjects.slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        .filter((s) => !q || String(s.name || '').toLowerCase().includes(q));
+      $('subjects-counter').textContent = items.length ? `Предметов: ${items.length}` : 'Предметы не найдены';
+      $('subjects-list').innerHTML = items.length ? items.map((s) => {
+        const methodsCount = state.methods.filter((m) => Number(m.subject) === Number(s.id)).length;
+        return `
+          <div class="subject-item${Number(s.id) === Number(state.selectedSubjectManageId) ? ' active' : ''}" data-id="${s.id}">
+            <div class="subject-item-title">${esc(s.name || `Предмет #${s.id}`)}</div>
+            <div class="subject-item-meta">ID: ${s.id} · Методпакетов: ${methodsCount}</div>
+          </div>
+        `;
+      }).join('') : '<div class="empty">Список предметов пуст</div>';
+      $('subjects-list').querySelectorAll('[data-id]').forEach((el) => {
+        el.onclick = () => {
+          const id = Number(el.dataset.id);
+          const subj = subjectById(id);
+          state.selectedSubjectManageId = id;
+          $('subject-name-input').value = subj ? (subj.name || '') : '';
+          $('subject-delete-btn').style.display = subj ? 'inline-block' : 'none';
+          setStatus('subject-form-status', '');
+          renderSubjectsManage();
+        };
+      });
+    }
+
+    async function saveSubject() {
+      const name = String($('subject-name-input').value || '').trim();
+      if (!name) {
+        setStatus('subject-form-status', 'Введите название предмета.');
+        return;
+      }
+      setStatus('subject-form-status', state.selectedSubjectManageId ? 'Сохранение изменений...' : 'Создание предмета...');
+      try {
+        if (state.selectedSubjectManageId) {
+          await api(`/api/subjects/${state.selectedSubjectManageId}/`, 'PUT', { name });
+        } else {
+          const created = await api('/api/subjects/', 'POST', { name });
+          state.selectedSubjectManageId = created.id;
+        }
+        await refreshSubjectsAndMethods();
+        const subj = state.selectedSubjectManageId ? subjectById(state.selectedSubjectManageId) : null;
+        $('subject-name-input').value = subj ? (subj.name || '') : name;
+        $('subject-delete-btn').style.display = state.selectedSubjectManageId ? 'inline-block' : 'none';
+        setStatus('subject-form-status', 'Сохранено.');
+      } catch (e) {
+        setStatus('subject-form-status', e.message);
+      }
+    }
+
+    async function deleteSubject() {
+      if (!state.selectedSubjectManageId) return;
+      const subj = subjectById(state.selectedSubjectManageId);
+      if (!window.confirm(`Удалить предмет "${subj?.name || state.selectedSubjectManageId}"?`)) return;
+      setStatus('subject-form-status', 'Удаление...');
+      try {
+        await api(`/api/subjects/${state.selectedSubjectManageId}/`, 'DELETE');
+        resetSubjectForm();
+        await refreshSubjectsAndMethods();
+        setStatus('subject-form-status', 'Предмет удален.');
+      } catch (e) {
+        setStatus('subject-form-status', e.message);
+      }
+    }
+
+    function filteredManageMethods() {
+      const subjectId = Number(($('methods-subject-filter') && $('methods-subject-filter').value) || 0);
+      const q = String(($('methods-search') && $('methods-search').value) || '').trim().toLowerCase();
+      return state.methods.filter((m) => {
+        if (subjectId && Number(m.subject) !== subjectId) return false;
+        if (!q) return true;
+        const hay = `${m.title || ''} ${m.subject_name || ''} ${m.method_number || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    function renderMethodsManageList() {
+      const items = filteredManageMethods().slice().sort((a, b) => {
+        const s = String(a.subject_name || '').localeCompare(String(b.subject_name || ''));
+        if (s) return s;
+        const n = Number(a.method_number || 0) - Number(b.method_number || 0);
+        if (n) return n;
+        return String(a.title || '').localeCompare(String(b.title || ''));
+      });
+      $('methods-counter').textContent = items.length ? `Методпакетов: ${items.length}` : 'Методпакеты не найдены';
+      if (state.selectedMethodManageId && !items.some((m) => Number(m.id) === Number(state.selectedMethodManageId))) {
+        state.selectedMethodManageId = items[0] ? items[0].id : null;
+      }
+      $('methods-list').innerHTML = items.length ? items.map((m) => `
+        <div class="method-item${Number(m.id) === Number(state.selectedMethodManageId) ? ' active' : ''}" data-id="${m.id}">
+          <div class="method-item-title">${esc(m.title || `Метод ${m.method_number || ''}`)}</div>
+          <div class="method-item-meta">${esc(m.subject_name || 'Без предмета')} · Метод ${Number(m.method_number || 0) || '—'} · ID: ${m.id}</div>
+        </div>
+      `).join('') : '<div class="empty">Список методпакетов пуст</div>';
+      $('methods-list').querySelectorAll('[data-id]').forEach((el) => {
+        el.onclick = () => {
+          state.selectedMethodManageId = Number(el.dataset.id);
+          renderMethodsManageList();
+          renderMethodsManageDetail();
+        };
+      });
+    }
+
+    function renderMethodsManageDetail() {
+      const box = $('methods-detail');
+      const m = methodById(state.selectedMethodManageId);
+      if (!m) {
+        box.innerHTML = '<div class="empty">Выберите методпакет, чтобы просмотреть, открыть в конструкторе или удалить.</div>';
+        return;
+      }
+      box.innerHTML = `
+        <div class="method-preview-head">
+          <div>
+            <div class="detail-title">${esc(m.title || 'Методпакет')}</div>
+            <div class="detail-meta">${esc(m.subject_name || 'Без предмета')} · Метод ${Number(m.method_number || 0) || '—'} · ID: ${m.id}</div>
+          </div>
+          <div class="actions" style="margin:0;">
+            <button id="manage-method-preview-toggle" class="action-btn" type="button">Просмотреть</button>
+            <button id="manage-method-open-tab" class="action-btn" type="button">Новая вкладка</button>
+            <button id="manage-method-edit" class="action-btn primary" type="button">Открыть конструктор</button>
+            <button id="manage-method-delete" class="action-btn warn" type="button">Удалить</button>
+          </div>
+        </div>
+        <div id="manage-method-preview-wrap" class="method-preview-wrap" style="display:none;">
+          <div id="manage-method-preview-root"></div>
+        </div>
+        <div id="methods-detail-status" class="status-line"></div>
+      `;
+      $('manage-method-preview-toggle').onclick = () => {
+        const wrap = $('manage-method-preview-wrap');
+        const root = $('manage-method-preview-root');
+        const isOpen = wrap.style.display !== 'none';
+        if (isOpen) {
+          wrap.style.display = 'none';
+          root.innerHTML = '';
+          $('manage-method-preview-toggle').textContent = 'Просмотреть';
+          return;
+        }
+        root.innerHTML = '';
+        renderMethodLivePage(root, m);
+        wrap.style.display = 'block';
+        $('manage-method-preview-toggle').textContent = 'Скрыть просмотр';
+      };
+      $('manage-method-open-tab').onclick = () => openMethodInNewTab(m);
+      $('manage-method-edit').onclick = () => openMethodConstructor(m.id);
+      $('manage-method-delete').onclick = async () => {
+        if (!window.confirm(`Удалить методпакет "${m.title || `Метод ${m.method_number || ''}`}"?`)) return;
+        setStatus('methods-detail-status', 'Удаление...');
+        try {
+          await api(`/api/method-packages/${m.id}/`, 'DELETE');
+          if (Number(state.selectedMethodManageId) === Number(m.id)) state.selectedMethodManageId = null;
+          await refreshSubjectsAndMethods();
+          setStatus('methods-detail-status', 'Методпакет удален.');
+        } catch (e) {
+          setStatus('methods-detail-status', e.message);
+        }
+      };
+    }
+
+    function renderAssignMatrix() {
+      const box = $('assign-matrix');
+      const summary = $('assign-matrix-summary');
+      const teacherId = Number($('assign-teacher').value || 0);
+      const subjectId = Number($('assign-subject').value || 0);
+      const startFrom = Number($('assign-start-method').value || 1);
+      const subject = state.subjects.find((s) => Number(s.id) === subjectId) || null;
+      const methods = state.methods.filter((m) => Number(m.subject) === subjectId);
+      const byNumber = new Map(methods.map((m) => [Number(m.method_number || 0), m]));
+
+      const rows = [];
+      let existingCount = 0;
+      let alreadyAssigned = 0;
+      let readyCount = 0;
+      const missingNums = [];
+      for (let n = 1; n <= 12; n += 1) {
+        const mp = byNumber.get(n) || null;
+        if (n < startFrom) {
+          if (mp) existingCount += 1;
+          rows.push(`
+            <tr>
+              <td class="matrix-num">${n}</td>
+              <td class="matrix-title ${mp ? '' : 'placeholder'}">${mp ? esc(mp.title || `Урок ${n}`) : '—'}</td>
+              <td class="matrix-state"><span class="badge">Не входит в текущее обновление</span></td>
+            </tr>
+          `);
+          continue;
+        }
+        if (!mp) {
+          missingNums.push(n);
+          rows.push(`
+            <tr>
+              <td class="matrix-num">${n}</td>
+              <td class="matrix-title placeholder">В разработке</td>
+              <td class="matrix-state"><span class="badge missing">Методпакет еще не создан</span></td>
+            </tr>
+          `);
+          continue;
+        }
+        existingCount += 1;
+        const assigned = teacherId ? assignmentForTeacherAndMethod(teacherId, mp.id) : null;
+        if (assigned) alreadyAssigned += 1; else readyCount += 1;
+        rows.push(`
+          <tr>
+            <td class="matrix-num">${n}</td>
+            <td class="matrix-title">${esc(mp.title || 'Методпакет')}</td>
+            <td class="matrix-state">
+              ${assigned
+                ? `<span class="badge assigned">Назначено · ${esc(statusLabel(assigned.status))}</span>`
+                : `<span class="badge ready">Готов к назначению</span>`}
+            </td>
+          </tr>
+        `);
+      }
+
+      box.innerHTML = `
+        <table class="matrix-table">
+          <thead>
+            <tr><th>№</th><th>Название урока</th><th>Состояние</th></tr>
+          </thead>
+          <tbody>${rows.join('')}</tbody>
+        </table>
+      `;
+
+      if (!subject) {
+        summary.textContent = 'Выберите предмет и преподавателя';
+      } else if (!teacherId) {
+        summary.textContent = `${subject.name} · старт с урока ${startFrom} · методпакетов создано: ${existingCount}/12 · выберите преподавателя для назначения`;
+      } else {
+        summary.textContent = `${subject.name} · старт с урока ${startFrom} · создано: ${existingCount}/12 · уже назначено: ${alreadyAssigned} · можно назначить: ${readyCount}` + (missingNums.length ? `\nВ разработке номера: ${missingNums.join(', ')}` : '');
+      }
+    }
+
+    async function bulkAssignSubject() {
+      const teacher = Number($('assign-teacher').value || 0);
+      const subject = Number($('assign-subject').value || 0);
+      const start_method_number = Number($('assign-start-method').value || 1);
+      const deadline = String($('assign-deadline').value || '').trim();
+      const status = String($('assign-status').value || 'todo');
+      const notes = String($('assign-notes').value || '').trim();
+      if (!teacher || !subject) {
+        setStatus('assign-create-status', 'Выберите преподавателя и предмет.');
+        return;
+      }
+      setStatus('assign-create-status', 'Назначение методов по предмету...');
+      try {
+        const payload = { teacher, subject, status, start_method_number };
+        if (deadline) payload.deadline = deadline;
+        if (notes) payload.notes = notes;
+        const resp = await api('/api/method-assignments/bulk_assign_subject/', 'POST', payload);
+        const [methods, assignments] = await Promise.all([
+          api('/api/method-packages/'),
+          api('/api/method-assignments/'),
+        ]);
+        state.methods = (methods || []).slice().sort((a, b) => {
+          const s = String(a.subject_name || '').localeCompare(String(b.subject_name || ''));
+          if (s) return s;
+          const n = Number(a.method_number || 0) - Number(b.method_number || 0);
+          if (n) return n;
+          return String(a.title || '').localeCompare(String(b.title || ''));
+        });
+        state.assignments = assignments || [];
+        const msg = [
+          `Старт с урока: ${resp.start_method_number || start_method_number}`,
+          `Создано назначений: ${resp.created_count || 0}`,
+          (resp.placeholder_methods_created && resp.placeholder_methods_created.length) ? `Созданы заготовки методов: ${resp.placeholder_methods_created.join(', ')}` : '',
+          (resp.existing_methods_skipped && resp.existing_methods_skipped.length) ? `Уже были назначены: ${resp.existing_methods_skipped.join(', ')}` : '',
+          (resp.missing_method_numbers && resp.missing_method_numbers.length) ? `Пока в разработке: ${resp.missing_method_numbers.join(', ')}` : 'Все 12 методпакетов созданы.'
+        ].filter(Boolean).join('\n');
+        setStatus('assign-create-status', msg);
+        renderAssignMatrix();
+        renderAssignmentsList();
+      } catch (e) {
+        setStatus('assign-create-status', e.message);
+      }
+    }
+
+    function filteredAssignments() {
+      const teacherId = Number($('filter-teacher').value || 0);
+      const status = String($('filter-status').value || '');
+      const subjectName = String($('filter-subject').value || '');
+      return state.assignments.filter((a) => {
+        if (teacherId && Number(a.teacher) !== teacherId) return false;
+        if (status && String(a.status) !== status) return false;
+        if (subjectName && String(a.method_subject_name || '') !== subjectName) return false;
+        return true;
+      });
+    }
+
+    function renderAssignmentsList() {
+      const wrap = $('assignments-list');
+      const items = filteredAssignments().slice().sort((a, b) => {
+        const r = String(a.status || '').localeCompare(String(b.status || ''));
+        if (r) return r;
+        const s = String(a.method_subject_name || '').localeCompare(String(b.method_subject_name || ''));
+        if (s) return s;
+        const n = Number(a.method_number || 0) - Number(b.method_number || 0);
+        if (n) return n;
+        return String(a.teacher_name || '').localeCompare(String(b.teacher_name || ''));
+      });
+      $('list-counter').textContent = items.length ? `Найдено назначений: ${items.length}` : 'Назначений пока нет';
+      if (!items.length) {
+        wrap.innerHTML = '<div class="empty">Список пуст</div>';
+        $('assignment-detail').innerHTML = '<div class="empty">Выберите назначение, чтобы открыть проверку и комментарии.</div>';
+        return;
+      }
+      if (!items.some((a) => Number(a.id) === Number(state.selectedAssignmentId))) state.selectedAssignmentId = items[0].id;
+      wrap.innerHTML = items.map((a) => `
+        <div class="assignment-card${Number(a.id) === Number(state.selectedAssignmentId) ? ' active' : ''}" data-assignment-id="${a.id}">
+          <div class="assignment-card-title">${esc(a.method_title || 'Методпакет')}</div>
+          <div class="assignment-card-meta">
+            ${esc(a.method_subject_name || 'Без предмета')} · Метод ${Number(a.method_number || 0) || '—'}<br>
+            Преподаватель: ${esc(a.teacher_name || a.teacher_username || '—')}
+          </div>
+          <div class="badge ${esc(a.status)}">${esc(statusLabel(a.status))}</div>
+        </div>
+      `).join('');
+      wrap.querySelectorAll('[data-assignment-id]').forEach((el) => {
+        el.onclick = async () => {
+          state.selectedAssignmentId = Number(el.dataset.assignmentId);
+          renderAssignmentsList();
+          await ensureCommentsLoaded(state.selectedAssignmentId);
+          renderAssignmentDetail();
+        };
+      });
+      renderAssignmentDetail();
+    }
+
+    function isOwnComment(c) {
+      const role = String((state.me && state.me.role) || '').toLowerCase();
+      return String(c.sender_role || '').toLowerCase() === role || (state.me && c.sender_username === state.me.username);
+    }
+
+    async function ensureCommentsLoaded(assignmentId, force = false) {
+      if (!assignmentId) return;
+      if (!force && state.commentsByAssignment[assignmentId]) return;
+      state.commentsByAssignment[assignmentId] = await api(`/api/method-assignments/${assignmentId}/comments/`);
+    }
+
+    function renderAssignmentDetail() {
+      const box = $('assignment-detail');
+      const a = selectedAssignment();
+      if (!a) {
+        box.innerHTML = '<div class="empty">Выберите назначение.</div>';
+        return;
+      }
+      const comments = state.commentsByAssignment[a.id] || [];
+      const method = methodById(a.method_package);
+      box.innerHTML = `
+        <div class="detail-head">
+          <div>
+            <div class="detail-title">${esc(a.method_title || 'Методпакет')}</div>
+            <div class="detail-meta">
+              ${esc(a.method_subject_name || 'Без предмета')} · Метод ${Number(a.method_number || 0) || '—'}<br>
+              Преподаватель: ${esc(a.teacher_name || a.teacher_username || '—')} (${esc(a.teacher_username || '—')})<br>
+              ${a.deadline ? `Дедлайн: ${esc(a.deadline)} · ` : ''}Редактирование: ${a.can_edit ? 'разрешено' : 'закрыто'}
+              ${a.notes ? `<br>Последний комментарий: ${esc(a.notes)}` : ''}
+            </div>
+          </div>
+          <div class="badge ${esc(a.status)}">${esc(statusLabel(a.status))}</div>
+        </div>
+        <div class="actions">
+          <button id="detail-refresh" class="action-btn" type="button">Обновить</button>
+          ${method ? `<button id="detail-preview" class="action-btn" type="button">Просмотреть метод</button>` : ''}
+          ${method ? `<button id="detail-preview-tab" class="action-btn" type="button">В новой вкладке</button>` : ''}
+          ${method && method.material_url ? `<a class="action-btn" href="${esc(method.material_url)}" target="_blank" rel="noopener noreferrer">Источник</a>` : ''}
+          <button id="detail-approve" class="action-btn ok" type="button">Подтвердить</button>
+          <button id="detail-rework" class="action-btn warn" type="button">На доработку</button>
+        </div>
+        <div id="detail-method-preview-wrap" class="method-preview-wrap" style="display:none;">
+          <div id="detail-method-preview"></div>
+        </div>
+        <label>Комментарий методиста (для действия)</label>
+        <textarea id="detail-action-comment" placeholder="Комментарий для преподавателя"></textarea>
+        <div id="detail-comments" class="comments">
+          ${comments.length ? comments.slice().reverse().map((c) => `
+            <div class="comment${isOwnComment(c) ? ' self' : ''}">
+              <div class="comment-meta"><span>${esc(c.sender_name || c.sender_username || c.sender_role || 'Пользователь')}</span><span>${esc(fmtDateTime(c.created_at))}</span></div>
+              <div class="comment-text">${esc(c.text || '')}</div>
+            </div>
+          `).join('') : '<div class="empty">Комментариев пока нет</div>'}
+        </div>
+        <div class="comment-send">
+          <input id="detail-comment-input" placeholder="Сообщение преподавателю..." />
+          <button id="detail-comment-send" class="action-btn primary" type="button">Отправить</button>
+        </div>
+        <div id="detail-status" class="status-line"></div>
+      `;
+      $('detail-refresh').onclick = async () => {
+        await reloadAssignmentsAndKeepSelection();
+        await ensureCommentsLoaded(a.id, true);
+        renderAssignmentDetail();
+      };
+      const previewBtn = $('detail-preview');
+      if (previewBtn && method) {
+        previewBtn.onclick = () => {
+          const wrap = $('detail-method-preview-wrap');
+          const root = $('detail-method-preview');
+          if (!wrap || !root) return;
+          const visible = wrap.style.display !== 'none';
+          if (visible) {
+            wrap.style.display = 'none';
+            root.innerHTML = '';
+            previewBtn.textContent = 'Просмотреть метод';
+            return;
+          }
+          root.innerHTML = '';
+          renderMethodLivePage(root, method);
+          wrap.style.display = 'block';
+          previewBtn.textContent = 'Скрыть просмотр';
+        };
+      }
+      const previewTabBtn = $('detail-preview-tab');
+      if (previewTabBtn && method) previewTabBtn.onclick = () => openMethodInNewTab(method);
+      $('detail-comment-send').onclick = () => sendComment(a.id);
+      $('detail-approve').onclick = () => performAssignmentAction(a.id, 'approve');
+      $('detail-rework').onclick = () => performAssignmentAction(a.id, 'rework');
+    }
+
+    async function sendComment(assignmentId) {
+      const input = $('detail-comment-input');
+      const text = String(input.value || '').trim();
+      if (!text) return;
+      setStatus('detail-status', 'Отправка комментария...');
+      try {
+        await api(`/api/method-assignments/${assignmentId}/comments/`, 'POST', { text });
+        input.value = '';
+        await ensureCommentsLoaded(assignmentId, true);
+        renderAssignmentDetail();
+        setStatus('detail-status', '');
+      } catch (e) {
+        setStatus('detail-status', e.message);
+      }
+    }
+
+    async function performAssignmentAction(assignmentId, actionName) {
+      const comment = String(($('detail-action-comment') && $('detail-action-comment').value) || '').trim();
+      if (actionName === 'rework' && !comment) {
+        setStatus('detail-status', 'Для отправки на доработку нужен комментарий.');
+        return;
+      }
+      setStatus('detail-status', actionName === 'approve' ? 'Подтверждение...' : 'Отправка на доработку...');
+      try {
+        const updated = await api(`/api/method-assignments/${assignmentId}/${actionName}/`, 'POST', comment ? { comment } : {});
+        state.assignments = state.assignments.map((x) => x.id === updated.id ? updated : x);
+        await ensureCommentsLoaded(assignmentId, true);
+        renderAssignmentsList();
+        renderAssignmentDetail();
+        setStatus('detail-status', '');
+      } catch (e) {
+        setStatus('detail-status', e.message);
+      }
+    }
+
+    async function reloadAssignmentsAndKeepSelection() {
+      state.assignments = await api('/api/method-assignments/');
+      renderAssignmentsList();
+      renderAssignMatrix();
+    }
+
+    async function loadPortal() {
+      const params = new URLSearchParams(window.location.search);
+      state.token = params.get('token') || sessionStorage.getItem('methodist_portal_token') || '';
+      const returnTab = params.get('return_tab') || '';
+      if (!state.token) {
+        window.location.href = '/login/';
+        return;
+      }
+      sessionStorage.setItem('methodist_portal_token', state.token);
+      state.me = await api('/api/me/');
+      $('who').textContent = `${state.me.username || ''} (${state.me.role || ''})`;
+      if (String(state.me.role || '').toLowerCase() !== 'methodist' && !state.me.is_staff) {
+        throw new Error('Нет доступа: нужен аккаунт методиста.');
+      }
+
+      const [teachers, methods, assignments, subjects] = await Promise.all([
+        api('/api/teachers/'),
+        api('/api/method-packages/'),
+        api('/api/method-assignments/'),
+        api('/api/subjects/'),
+      ]);
+      state.teachers = teachers || [];
+      state.methods = (methods || []).slice().sort((a, b) => {
+        const s = String(a.subject_name || '').localeCompare(String(b.subject_name || ''));
+        if (s) return s;
+        const n = Number(a.method_number || 0) - Number(b.method_number || 0);
+        if (n) return n;
+        return String(a.title || '').localeCompare(String(b.title || ''));
+      });
+      state.assignments = assignments || [];
+      state.subjects = subjects || [];
+
+      rebuildCommonSelects();
+      $('assign-teacher').onchange = renderAssignMatrix;
+      $('assign-subject').onchange = renderAssignMatrix;
+      $('assign-start-method').onchange = renderAssignMatrix;
+      $('assign-bulk-btn').onclick = bulkAssignSubject;
+      $('subjects-search').oninput = renderSubjectsManage;
+      $('subject-save-btn').onclick = saveSubject;
+      $('subject-reset-btn').onclick = resetSubjectForm;
+      $('subject-delete-btn').onclick = deleteSubject;
+      $('methods-subject-filter').onchange = () => { renderMethodsManageList(); renderMethodsManageDetail(); };
+      $('methods-search').oninput = () => { renderMethodsManageList(); renderMethodsManageDetail(); };
+      $('method-create-btn').onclick = () => openMethodConstructor();
+
+      ['filter-teacher', 'filter-status', 'filter-subject'].forEach((id) => {
+        $(id).onchange = renderAssignmentsList;
+      });
+
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.onclick = () => switchTab(btn.dataset.tab);
+      });
+
+      renderAssignMatrix();
+      renderAssignmentsList();
+      renderSubjectsManage();
+      renderMethodsManageList();
+      renderMethodsManageDetail();
+      let savedTab = '';
+      try { savedTab = sessionStorage.getItem(methodistTabStorageKey) || ''; } catch (_) {}
+      const initialTab = (returnTab && ['assign', 'control', 'subjects', 'methods'].includes(returnTab))
+        ? returnTab
+        : ((savedTab && ['assign', 'control', 'subjects', 'methods'].includes(savedTab)) ? savedTab : 'assign');
+      switchTab(initialTab);
+      if (state.selectedAssignmentId) {
+        await ensureCommentsLoaded(state.selectedAssignmentId);
+        renderAssignmentDetail();
+      }
+    }
+
+    $('logout').onclick = async () => {
+      try { await fetch('/api/session-logout/', { method: 'POST' }); } catch (_) {}
+      sessionStorage.removeItem('methodist_portal_token');
+      window.location.href = '/login/';
+    };
+
+    loadPortal().catch((e) => {
+      const msg = `<div class="empty">${esc(e.message)}</div>`;
+      if ($('assignment-detail')) $('assignment-detail').innerHTML = msg;
+      setStatus('assign-create-status', e.message);
+    });
+  </script>
+</body>
+</html>

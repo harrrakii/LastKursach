@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Вход | Методический сервис</title>
+  <style>
+    :root {
+      --bg: #0b1021;
+      --panel: #0f162e;
+      --card: rgba(255,255,255,0.02);
+      --accent: #ff3b30;
+      --accent2: #19d1ff;
+      --text: #f7f7f7;
+      --muted: #c4c7d4;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0;
+      font-family: 'Inter', 'JetBrains Mono', system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(255,59,48,0.08), transparent 25%),
+        radial-gradient(circle at 90% 10%, rgba(25,209,255,0.12), transparent 30%),
+        radial-gradient(circle at 70% 80%, rgba(255,255,255,0.05), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+    }
+    .frame {
+      width: min(1200px, 100%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    .left {
+      position: relative;
+      background: radial-gradient(circle at 20% 20%, rgba(25,209,255,0.18), transparent 45%),
+                  radial-gradient(circle at 60% 80%, rgba(255,59,48,0.14), transparent 50%),
+                  var(--panel);
+      padding: 32px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .left::before {
+      content:'';
+      position:absolute;
+      inset: 12% 18%;
+      border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 24px;
+      filter: blur(0.2px);
+    }
+    .orb {
+      position:absolute;
+      width: 140px; height: 140px;
+      background: radial-gradient(circle, rgba(255,255,255,0.55), transparent 60%);
+      mix-blend-mode: screen;
+      filter: blur(6px);
+      opacity: 0.35;
+    }
+    .orb.one { top: 18%; left: 20%; }
+    .orb.two { bottom: 15%; right: 24%; background: radial-gradient(circle, rgba(25,209,255,0.7), transparent 65%); }
+    .robot {
+      position: relative;
+      width: 280px;
+      aspect-ratio: 4 / 5;
+      background: linear-gradient(160deg, #19233f, #0f162e 55%, #0b1021);
+      border-radius: 32px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+    .robot::after {
+      content:'';
+      position:absolute;
+      inset: 12px;
+      border-radius: 24px;
+      background: radial-gradient(circle at 30% 30%, rgba(25,209,255,0.35), transparent 50%),
+                  radial-gradient(circle at 70% 70%, rgba(255,59,48,0.28), transparent 45%),
+                  linear-gradient(120deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+      filter: blur(0.2px);
+    }
+    .robot .eye {
+      position:relative;
+      width: 160px;
+      height: 60px;
+      background: #0a0f1f;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-evenly;
+      box-shadow: inset 0 0 20px rgba(25,209,255,0.25);
+      z-index:2;
+    }
+    .dot {
+      width: 16px; height:16px; border-radius:50%;
+      background: radial-gradient(circle, #19d1ff, #0ff);
+      box-shadow: 0 0 12px rgba(25,209,255,0.7);
+      transition: transform 0.07s ease-out;
+      will-change: transform;
+    }
+    .mouth {
+      width: 90px;
+      height: 32px;
+      background: #11182b;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: inset 0 0 12px rgba(255,59,48,0.4);
+      transition: border-radius 0.18s ease, box-shadow 0.18s ease;
+      z-index: 2;
+    }
+    .right {
+      background: #0f1425;
+      padding: 48px clamp(28px, 3vw, 52px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 28px 26px 26px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    h1 { margin: 0 0 10px; font-weight: 800; letter-spacing: -0.02em; }
+    p.sub { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+    .tags { display:flex; gap:8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tag { padding:6px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; font-weight: 700; }
+    label { display:block; margin: 12px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    input {
+      width:100%; padding: 12px 14px; border-radius: 12px;
+      border:1px solid rgba(255,255,255,0.14); background:#0b1021;
+      color:var(--text); font-size:15px; outline:none;
+      transition:border 0.2s, box-shadow 0.2s, transform 0.05s;
+    }
+    input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(25,209,255,0.18); transform: translateY(-1px); }
+    button {
+      width:100%; margin-top:18px; padding:12px 14px; border:none; border-radius:12px;
+      background:linear-gradient(120deg, #ff3b30, #ff6b6b);
+      color:#fff; font-weight:800; font-size:15px; cursor:pointer;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 12px 28px rgba(255,59,48,0.25);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 18px 34px rgba(255,59,48,0.35); }
+    .status { display:none; margin-top:14px; padding:12px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); font-size:14px; line-height:1.5; white-space:pre-line; }
+    .error { color: var(--danger); }
+    .role-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(25,209,255,0.16); color:#e8fbff; font-size:13px; margin-top:10px; }
+    .small { font-size: 13px; color: var(--muted); margin-top: 12px; }
+    a { color: var(--accent2); text-decoration:none; }
+    @media (max-width: 900px) {
+      .frame { grid-template-columns: 1fr; }
+      .left { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="left">
+      <div class="orb one"></div>
+      <div class="orb two"></div>
+      <div class="robot">
+        <div class="eye">
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div class="mouth" id="robot-mouth"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="card">
+        <h1>Авторизация</h1>
+        <form id="login-form">
+          <label for="username">Логин</label>
+          <input id="username" name="username" autocomplete="username" required />
+          <label for="password">Пароль</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+          <button type="submit">Войти</button>
+        </form>
+        <div id="status" class="status"></div>
+        <div id="admin-actions" style="display:none; margin-top:8px; gap:12px; flex-wrap:nowrap;">
+          <button id="btn-copy-access" type="button" style="flex:1; min-width:0; margin-top:0; height:48px; padding:0 10px; font-size:13px;">copy access</button>
+          <a id="btn-console" href="/console/" style="flex:1; min-width:0; height:48px; padding:0 10px; font-size:13px; border-radius:12px; background:rgba(25,209,255,0.12); border:1px solid rgba(25,209,255,0.4); color:#d9f9ff; text-align:center; font-weight:700; display:flex; align-items:center; justify-content:center;">console</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const statusBox = document.getElementById('status');
+    const adminActions = document.getElementById('admin-actions');
+    const btnCopyAccess = document.getElementById('btn-copy-access');
+    let lastTokens = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusBox.style.display = 'block';
+      statusBox.textContent = 'Запрос...';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        const tokenResp = await fetch('/api/token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        if (!tokenResp.ok) {
+          const errText = await tokenResp.text();
+          throw new Error('Ошибка входа: ' + errText);
+        }
+        const tokens = await tokenResp.json();
+        lastTokens = tokens;
+        const meResp = await fetch('/api/me/', {
+          headers: { 'Authorization': 'Bearer ' + tokens.access }
+        });
+        let me = { role: 'неизвестно' };
+        if (meResp.ok) me = await meResp.json();
+        const role = (me.role || '').toLowerCase();
+        const canOpenConsole = role === 'admin';
+        statusBox.style.display = 'block';
+        statusBox.innerHTML = `Успешно.\nПользователь: ${me.username || username}\nРоль: ${me.role || 'не указана'}` +
+          `<div class="role-pill">${me.role || 'role?'}</div>`;
+        adminActions.style.display = canOpenConsole ? 'flex' : 'none';
+        if (role === 'methodist') {
+          const sessionResp = await fetch('/api/session-login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          if (!sessionResp.ok) {
+            const errText = await sessionResp.text();
+            throw new Error('Ошибка входа методиста: ' + errText);
+          }
+          localStorage.removeItem('consoleAccessToken');
+          const url = new URL(window.location.origin + '/methodist/');
+          url.searchParams.set('token', tokens.access);
+          window.location.href = url.toString();
+          return;
+        }
+        if (role === 'student') {
+          try {
+            const students = await fetch('/api/students/', { headers: { 'Authorization': 'Bearer ' + tokens.access } }).then(r => r.json());
+            const self = Array.isArray(students) ? students.find(s => s.username === me.username) : null;
+            const groupId = self ? self.group : '';
+            const url = new URL(window.location.origin + '/student/');
+            url.searchParams.set('token', tokens.access);
+            if (groupId) url.searchParams.set('group', groupId);
+            if (self) url.searchParams.set('student_id', self.id);
+            window.location.href = url.toString();
+            return;
+          } catch (_) { /* fallback: stay */ }
+        }
+        if (role === 'manager') {
+          const sessionResp = await fetch('/api/session-login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          if (!sessionResp.ok) {
+            const errText = await sessionResp.text();
+            throw new Error('Ошибка входа менеджера: ' + errText);
+          }
+          const url = new URL(window.location.origin + '/manager/');
+          url.searchParams.set('token', tokens.access);
+          window.location.href = url.toString();
+          return;
+        }
+        if (role === 'parent' || role === 'teacher') {
+          const url = new URL(window.location.origin + `/${role}/`);
+          url.searchParams.set('token', tokens.access);
+          window.location.href = url.toString();
+          return;
+        }
+      } catch (err) {
+        statusBox.style.display = 'block';
+        statusBox.innerHTML = `<span class="error">${err.message}</span>`;
+        adminActions.style.display = 'none';
+      }
+    });
+
+    function copy(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        statusBox.style.display = 'block';
+        statusBox.textContent = 'Скопировано в буфер обмена';
+      }).catch(() => {
+        statusBox.style.display = 'block';
+        statusBox.textContent = 'Не удалось скопировать';
+      });
+    }
+
+    btnCopyAccess.onclick = () => { if (lastTokens) copy(lastTokens.access); };
+
+    // Robot eye tracking + smile
+    const dots = document.querySelectorAll('.dot');
+    const robotMouth = document.getElementById('robot-mouth');
+    const robotEye = document.querySelector('.eye');
+    const formFields = [...document.querySelectorAll('#login-form input, #login-form button')];
+
+    document.addEventListener('mousemove', (e) => {
+      // Eye tracking
+      dots.forEach((dot) => {
+        const rect = dot.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const max = 5;
+        const mx = dist > 0 ? (dx / dist) * Math.min(dist * 0.15, max) : 0;
+        const my = dist > 0 ? (dy / dist) * Math.min(dist * 0.15, max) : 0;
+        dot.style.transform = `translate(${mx}px, ${my}px)`;
+      });
+
+      // Smile: measure min distance to any input / submit button
+      let minDist = Infinity;
+      formFields.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const nearX = Math.max(r.left, Math.min(e.clientX, r.right));
+        const nearY = Math.max(r.top, Math.min(e.clientY, r.bottom));
+        const d = Math.hypot(e.clientX - nearX, e.clientY - nearY);
+        if (d < minDist) minDist = d;
+      });
+
+      // smile 0→1 over 320px range
+      const smile = Math.max(0, Math.min(1, 1 - minDist / 320));
+
+      // Border-radius: top corners stay flat, bottom curves upward (smile)
+      const topR    = Math.round(16 - smile * 12);   // 16 → 4
+      const bottomR = Math.round(16 + smile * 38);   // 16 → 54
+      robotMouth.style.borderRadius = `${topR}px ${topR}px ${bottomR}px ${bottomR}px`;
+
+      // Glow: dark-red (neutral) → warm green/cyan (happy)
+      const gr = Math.round(255 - smile * 155);                      // 255 → 100
+      const gg = Math.round(59  + smile * 190);                      // 59  → 249
+      const ga = (0.35 + smile * 0.55).toFixed(2);
+      const gSize = Math.round(12 + smile * 10);
+      robotMouth.style.boxShadow = `inset 0 0 ${gSize}px rgba(${gr},${gg},48,${ga})`;
+
+      // Eye glow intensifies when smiling
+      const eyeAlpha = (0.25 + smile * 0.45).toFixed(2);
+      const eyeSize  = Math.round(20 + smile * 18);
+      robotEye.style.boxShadow = `inset 0 0 ${eyeSize}px rgba(25,209,255,${eyeAlpha})`;
+    });
+  </script>
+</body>
+</html>
